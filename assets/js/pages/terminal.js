@@ -8,7 +8,7 @@
   };
   var LIMIT = { day: 800, week: 400, month: 240, quarter: 120, year: 80 };
   var S = null;
-  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos' };
+  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos', growthMetric: 'rev', growthPeriod: 'Q' };
   var chart, growth, curve;
   var playTimer = null;
 
@@ -246,44 +246,122 @@
     $('vPeS').textContent = annual ? annual.date.slice(0, 4) + ' 年报' : '暂无年报';
   }
 
+  var GROWTH_METRICS = {
+    rev:   { label: '营业总收入', q: 'revQ',   y: 'rev' },
+    np:    { label: '归母净利润', q: 'npQ',    y: 'np' },
+    npNon: { label: '扣非净利润', q: 'npNonQ', y: 'npNon' }
+  };
+  var QCOLORS = ['#B8C7D9', '#8FA8C2', '#5E83A8', '#1E3A5F'];  /* Q1→Q4 由浅到深 */
+  var QNAMES = ['一季度', '二季度', '三季度', '四季度'];
+
+  function qOf(dateStr) {
+    var m = Number(dateStr.slice(5, 7));
+    return m === 3 ? 0 : m === 6 ? 1 : m === 9 ? 2 : 3;
+  }
+
   function renderGrowth() {
     var st = M.stock(state.code);
-    var reps = M.visibleReports(state.code, S.date).slice(-8);
+    var reps = M.visibleReports(state.code, S.date);
     var unit = st.currency === 'HKD' ? '亿港元' : '亿元';
-    $('growthTag').textContent = unit;
+    var curMetric = GROWTH_METRICS[state.growthMetric];
+
+    /* 各指标最新单期值（显示在指标 tab 上） */
+    var last = reps[reps.length - 1];
+    function lastVal(field) {
+      if (!last || last[field] == null) return null;
+      var v = M.convert(last[field], last.cur, st.currency, last.disc);
+      return v === null ? null : v / 1e8;
+    }
+    function fmtBig(v) {
+      if (v === null || v === undefined || isNaN(v)) return '--';
+      return (v >= 0 ? '' : '-') + Math.abs(v).toFixed(2) + '亿';
+    }
+    $('mRev').textContent = fmtBig(lastVal('revQ'));
+    $('mNp').textContent = fmtBig(lastVal('npQ'));
+    $('mNon').textContent = fmtBig(lastVal('npNonQ'));
+
     if (!reps.length) {
       growth.clear();
-      growth.setOption({
-        title: {
-          text: '该时点尚无已披露财报', left: 'center', top: 'middle',
-          textStyle: { fontSize: 10, color: C.faint, fontWeight: 400 }
-        }
-      });
+      growth.setOption({ title: { text: '该时点尚无已披露财报', left: 'center', top: 'middle',
+        textStyle: { fontSize: 10, color: C.faint, fontWeight: 400 } } });
+      $('growthThead').innerHTML = '';
+      $('growthTbody').innerHTML = '<tr><td class="empty">该时点尚无已披露财报</td></tr>';
       return;
     }
-    var cats = reps.map(function (r) { return r.date.slice(2, 7); });
-    var rev = reps.map(function (r) {
-      var v = M.convert(r.revQ, r.cur, st.currency, r.disc);
-      return v === null ? null : +(v / 1e8).toFixed(2);
+
+    /* 按财年聚合：每年一个对象，存每季单期值 + 年累计值 */
+    var fyMap = {};
+    var fyList = [];
+    reps.forEach(function (r) {
+      var fy = r.fy || r.date.slice(0, 4);
+      if (!fyMap[fy]) { fyMap[fy] = { fy: fy, q: [null, null, null, null], annual: {} }; fyList.push(fyMap[fy]); }
+      var qi = qOf(r.date);
+      fyMap[fy].q[qi] = M.convert(r[curMetric.q], r.cur, st.currency, r.disc);
+      /* 年报累计值（取该财年最后一份报告的累计口径） */
+      ['rev', 'np', 'npNon', 'eps'].forEach(function (k) {
+        if (r[k] != null) fyMap[fy].annual[k] = M.convert(r[k], r.cur, st.currency, r.disc);
+      });
     });
-    var np = reps.map(function (r) {
-      var v = M.convert(r.npQ, r.cur, st.currency, r.disc);
-      return v === null ? null : +(v / 1e8).toFixed(2);
-    });
+    /* 取最近 8 个财年 */
+    var years = fyList.slice(-8);
+    var xCats = years.map(function (y) { return y.fy; });
+
+    var series, legend;
+    if (state.growthPeriod === 'Q') {
+      legend = { data: QNAMES, bottom: 0, itemWidth: 10, itemHeight: 8, textStyle: { fontSize: 9, color: C.faint } };
+      series = QNAMES.map(function (name, i) {
+        return {
+          name: name, type: 'bar', stack: null, barMaxWidth: 14,
+          data: years.map(function (y) { return y.q[i] === null ? null : +(y.q[i] / 1e8).toFixed(2); }),
+          itemStyle: { color: QCOLORS[i], borderRadius: [2, 2, 0, 0] }
+        };
+      });
+    } else {
+      legend = null;
+      series = [{
+        name: curMetric.label, type: 'bar', barMaxWidth: 22,
+        data: years.map(function (y) {
+          var v = y.annual[curMetric.y];
+          return v == null ? null : +(v / 1e8).toFixed(2);
+        }),
+        itemStyle: { color: C.accent, borderRadius: [3, 3, 0, 0] }
+      }];
+    }
+
     growth.setOption({
       animation: false,
-      grid: { left: 40, right: 8, top: 16, bottom: 18 },
+      grid: { left: 44, right: 10, top: 12, bottom: legend ? 28 : 18 },
+      legend: legend,
       tooltip: {
         trigger: 'axis', backgroundColor: '#fff', borderColor: '#E3DED3',
-        textStyle: { color: C.ink, fontSize: 10 }
+        textStyle: { color: C.ink, fontSize: 10 },
+        valueFormatter: function (v) { return v == null ? '--' : v + ' ' + unit; }
       },
-      xAxis: { type: 'category', data: cats, axisLine: { lineStyle: { color: C.rule } }, axisTick: { show: false }, axisLabel: { fontSize: 8, color: C.faint } },
+      xAxis: { type: 'category', data: xCats, axisLine: { lineStyle: { color: C.rule } }, axisTick: { show: false }, axisLabel: { fontSize: 9, color: C.faint } },
       yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 8, color: C.faint }, splitLine: { lineStyle: { color: C.rule, type: 'dashed' } } },
-      series: [
-        { name: '营收', type: 'bar', data: rev, barMaxWidth: 9, itemStyle: { color: 'rgba(30,58,95,.55)', borderRadius: [2, 2, 0, 0] } },
-        { name: '归母', type: 'bar', data: np, barMaxWidth: 9, itemStyle: { color: 'rgba(176,122,46,.75)', borderRadius: [2, 2, 0, 0] } }
-      ]
+      series: series
     }, true);
+
+    /* 年度汇总表：列为财年，行为 营收/归母/扣非/EPS */
+    var head = '<th>指标</th>' + years.map(function (y) { return '<th class="n">' + y.fy + '</th>'; }).join('');
+    $('growthThead').innerHTML = head;
+    var rows = [
+      { key: 'rev',   label: '营业总收入' },
+      { key: 'np',    label: '归母净利润' },
+      { key: 'npNon', label: '扣非净利润' },
+      { key: 'eps',   label: 'EPS', isEps: true }
+    ];
+    $('growthTbody').innerHTML = rows.map(function (row) {
+      var tds = years.map(function (y) {
+        var v = y.annual[row.key];
+        var txt;
+        if (v == null) txt = '--';
+        else if (row.isEps) txt = v.toFixed(2);
+        else txt = (v / 1e8).toFixed(1) + '亿';
+        return '<td class="n">' + txt + '</td>';
+      }).join('');
+      return '<tr><td>' + row.label + '</td>' + tds + '</tr>';
+    }).join('');
   }
 
   function renderReports() {
@@ -439,6 +517,22 @@
       state.mode = b.getAttribute('data-m');
       [].forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
       renderChart();
+    });
+
+    $('growthMetric').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      state.growthMetric = b.getAttribute('data-m');
+      [].forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
+      renderGrowth();
+    });
+
+    $('growthPeriod').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      state.growthPeriod = b.getAttribute('data-p');
+      [].forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
+      renderGrowth();
     });
 
     $('ledgerTabs').addEventListener('click', function (e) {

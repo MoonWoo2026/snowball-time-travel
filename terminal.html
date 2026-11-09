@@ -113,8 +113,25 @@
         <div class="v-card"><div class="k">推算股息率</div><div class="n" id="vDiv">--</div><div class="s">过去 12 个月派息</div></div>
       </div>
 
-      <div class="panel-head"><span>单季营收 / 归母</span><em id="growthTag">亿元</em></div>
+      <div class="panel-head">
+        <span>成长能力</span>
+        <div class="seg growth-period" id="growthPeriod">
+          <button data-p="Q" class="on">按季度</button>
+          <button data-p="Y">按年度</button>
+        </div>
+      </div>
+      <div class="growth-metric" id="growthMetric">
+        <button data-m="rev" class="on">营业总收入<b id="mRev">--</b></button>
+        <button data-m="np">归母净利润<b id="mNp">--</b></button>
+        <button data-m="npNon">扣非净利润<b id="mNon">--</b></button>
+      </div>
       <div id="growth"></div>
+      <div class="table-wrap growth-table">
+        <table>
+          <thead><tr id="growthThead"></tr></thead>
+          <tbody id="growthTbody"></tbody>
+        </table>
+      </div>
 
       <div class="panel-head"><span>已披露财报</span><em id="reportTag">--</em></div>
       <div class="table-wrap">

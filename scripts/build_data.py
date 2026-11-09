@@ -193,6 +193,13 @@ def hk_corporate(code):
 def a_reports(code):
     res = em_data('RPT_LICO_FN_CPD', '(SECURITY_CODE="%s")' % code, 'REPORTDATE')
     rows = (res.get('result') or {}).get('data') or []
+    # 扣非净利润来自利润表，按报告期合并
+    non_map = {}
+    gi = em_data('RPT_F10_FINANCE_GINCOME', '(SECURITY_CODE="%s")' % code, 'REPORT_DATE')
+    for row in (gi.get('result') or {}).get('data') or []:
+        rd = row.get('REPORT_DATE')
+        if rd:
+            non_map[rd[:10]] = row.get('DEDUCT_PARENT_NETPROFIT')
     items = []
     for row in rows:
         rd = row.get('REPORTDATE')
@@ -203,6 +210,7 @@ def a_reports(code):
             'date': rd[:10], 'disc': nd[:10], 'est': False,
             'rev': row.get('TOTAL_OPERATE_INCOME'),
             'np': row.get('PARENT_NETPROFIT'),
+            'npNon': non_map.get(rd[:10]),
             'eps': row.get('BASIC_EPS'),
             'bvps': row.get('BPS'),
         })
@@ -248,8 +256,8 @@ def finish_reports(items):
     for it in items:
         fy = fiscal_year(it)
         base = prev.get(fy)
-        q = {'date': it['date'], 'disc': it['disc'], 'est': it['est']}
-        for k in ('rev', 'np', 'eps'):
+        q = {'date': it['date'], 'disc': it['disc'], 'est': it['est'], 'fy': fy}
+        for k in ('rev', 'np', 'npNon', 'eps'):
             v = it.get(k)
             if v is None:
                 q[k + 'Q'] = None
@@ -257,6 +265,7 @@ def finish_reports(items):
                 q[k + 'Q'] = float(v) - (base.get(k) or 0) if base and base.get(k) is not None else float(v)
         q['rev'] = it.get('rev')
         q['np'] = it.get('np')
+        q['npNon'] = it.get('npNon')
         q['eps'] = it.get('eps')
         q['bvps'] = it.get('bvps')
         q['cur'] = it.get('cur') or 'CNY'
