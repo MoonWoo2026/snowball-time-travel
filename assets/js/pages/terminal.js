@@ -539,11 +539,26 @@
         $('qty').value = E.shares(state.code) || '';
         return;
       }
-      var unit = cny(state.code, px);
-      var max = Math.floor(S.cash / (unit * 1.0003) / lotN) * lotN;
+      var max = maxBuyable(state.code, px, S.cash);
       var qty = v === '1' ? max : Math.floor(max * Number(v) / lotN) * lotN;
       $('qty').value = Math.max(qty, 0) || '';
     });
+  }
+
+  /* 按真实手续费精确计算可买最大股数（逐 lot 回退，避免费率估算不足导致现金不足） */
+  function maxBuyable(code, price, cash) {
+    var lotN = lot(code);
+    var unit = cny(code, price);
+    if (unit <= 0 || cash <= 0) return 0;
+    var market = M.stock(code).market;
+    var rate = market === 'A' ? 0.0004 : 0.0015;   /* A 股买≈0.026%+最低佣；港股买≈0.135%+最低佣 */
+    var qty = Math.floor(cash / (unit * (1 + rate)) / lotN) * lotN;
+    while (qty > 0) {
+      var fee = E.fees(code, qty, price, 'buy', S.date);
+      if (cash + 1e-6 >= qty * unit + fee.cny) break;
+      qty -= lotN;
+    }
+    return Math.max(qty, 0);
   }
 
   function jumpTo(date) {
