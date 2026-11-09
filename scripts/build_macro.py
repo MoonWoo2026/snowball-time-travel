@@ -152,7 +152,11 @@ def fai_yoy():
 
 
 def lpr_series():
-    """1 年期政策利率：优先 LPR1Y，2019 年以前回退 1 年期贷款基准利率。"""
+    """1 年期政策利率：优先 LPR1Y，2019 年以前回退 1 年期贷款基准利率。
+
+    旧口径只在调息日有记录，这里补成连续月度网格：无调息的月份沿用上一次
+    已知利率，公布日取当月 1 日（月初即已知），保证「6 个月变化」是真 6 个月。
+    """
     rows = em_pages('RPTA_WEB_RATE', sort='TRADE_DATE')
     bym = {}
     for r in rows:
@@ -165,7 +169,22 @@ def lpr_series():
             v = f(r.get('RATE_1'))
         if v is not None:
             bym[ym] = (round(v, 2), day)
-    return [[k, bym[k][0], bym[k][1]] for k in sorted(bym) if k >= START]
+    if not bym:
+        return []
+    out, prev = [], None
+    y, m = int(sorted(bym)[0][:4]), int(sorted(bym)[0][5:7])
+    y1, m1 = int(sorted(bym)[-1][:4]), int(sorted(bym)[-1][5:7])
+    while (y, m) <= (y1, m1):
+        ym = '%04d-%02d' % (y, m)
+        if ym in bym:
+            prev, day = bym[ym]
+            out.append([ym, prev, day])
+        elif prev is not None:
+            out.append([ym, prev, ym + '-01'])
+        m += 1
+        if m > 12:
+            y, m = y + 1, 1
+    return [x for x in out if x[0] >= START]
 
 
 def csi_monthly():

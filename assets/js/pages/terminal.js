@@ -59,6 +59,7 @@
     renderLedger();
     renderDock();
     U.refreshHead();
+    if (SB.cycle) SB.cycle.sync();
   }
 
   function renderAcct() {
@@ -410,6 +411,9 @@
     });
 
     $('tbSlots').addEventListener('click', function () { U.slotsDialog(); });
+
+    $('cycToggle').addEventListener('change', function () { SB.cycle.toggle(this.checked); });
+    $('cycRun').addEventListener('click', function () { SB.cycle.derive(); });
 
     $('pSeg').addEventListener('click', function (e) {
       var b = e.target.closest('button');

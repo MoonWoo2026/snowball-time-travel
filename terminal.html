@@ -37,7 +37,21 @@
       <input type="date" id="tbJump" aria-label="跳转到日期">
       <button id="tbGo">推进</button>
     </div>
-    <div class="tb-save"><button type="button" id="tbSlots">存档</button></div>
+    <div class="tb-opt">
+      <label><input type="checkbox" id="cycToggle"> 周期工具</label>
+      <button type="button" id="tbSlots">存档</button>
+    </div>
+  </section>
+
+  <section class="cyc" id="cycPanel" hidden>
+    <div class="cyc-head">
+      <div class="cyc-title"><b>周期工具</b><span>荀玉根改良美林时钟 · 周金涛周期罗盘</span></div>
+      <div class="cyc-act">
+        <span class="cyc-stamp" id="cycStamp">--</span>
+        <button type="button" id="cycRun">按当前时点推导</button>
+      </div>
+    </div>
+    <div class="cyc-body" id="cycBody"></div>
   </section>
 
   <div class="term-grid">
@@ -137,6 +151,7 @@
 <script src="assets/js/market.js"></script>
 <script src="assets/js/engine.js"></script>
 <script src="assets/js/ui.js"></script>
+<script src="assets/js/cycle.js"></script>
 <script src="assets/js/pages/terminal.js"></script>
 </body>
 </html>
