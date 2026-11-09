@@ -124,9 +124,111 @@ SB.ui = (function () {
     }).join('\n');
   }
 
+  /* ---------- 10 档推演存档 ---------- */
+  function slotsDialog() {
+    var mask = document.getElementById('slotMask');
+    if (!mask) {
+      mask = document.createElement('div');
+      mask.id = 'slotMask';
+      mask.className = 'mask';
+      mask.innerHTML = '<div class="dlg" role="dialog" aria-modal="true">' +
+        '<div class="dlg-head"><div><b>推演存档</b><span>最多 10 档，保存在本机浏览器</span></div>' +
+        '<button type="button" class="dlg-x" id="slotClose" aria-label="关闭">×</button></div>' +
+        '<div class="dlg-body" id="slotList"></div>' +
+        '<div class="dlg-foot"><span id="slotNow">--</span>' +
+        '<button type="button" class="danger" id="slotReset">清空当前推演</button></div>' +
+        '</div>';
+      document.body.appendChild(mask);
+
+      mask.addEventListener('click', function (e) {
+        if (e.target === mask || e.target.closest('#slotClose')) return closeSlots();
+        var row = e.target.closest('[data-slot]');
+        if (!row) {
+          if (e.target.closest('#slotReset')) resetSession();
+          return;
+        }
+        var i = Number(row.getAttribute('data-slot'));
+        var act = e.target.closest('[data-act]');
+        if (!act) return;
+        var kind = act.getAttribute('data-act');
+        if (kind === 'save') {
+          var r = SB.engine.saveSlot(i);
+          if (!r.ok) return toast(r.msg);
+          toast('已存入第 ' + (i + 1) + ' 档');
+          renderSlots();
+        } else if (kind === 'load') {
+          if (!confirm('读取该存档会覆盖当前进度，未保存的推演将丢失。继续？')) return;
+          var l = SB.engine.loadSlot(i);
+          if (!l.ok) return toast(l.msg);
+          location.href = 'terminal.html';
+        } else if (kind === 'del') {
+          if (!confirm('删除第 ' + (i + 1) + ' 档存档？')) return;
+          SB.engine.dropSlot(i);
+          toast('已删除第 ' + (i + 1) + ' 档');
+          renderSlots();
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && mask.classList.contains('on')) closeSlots();
+      });
+    }
+    renderSlots();
+    mask.classList.add('on');
+  }
+
+  function closeSlots() {
+    var mask = document.getElementById('slotMask');
+    if (mask) mask.classList.remove('on');
+  }
+
+  function resetSession() {
+    if (!SB.engine.session()) return toast('当前没有进行中的复盘');
+    if (!confirm('清空当前推演并重新开始？已保存的存档不会受影响。')) return;
+    SB.engine.reset();
+    closeSlots();
+    location.href = 'setup.html';
+  }
+
+  function renderSlots() {
+    var list = document.getElementById('slotList');
+    if (!list) return;
+    var S = SB.engine.session();
+    var items = SB.engine.slots();
+    var n = 0;
+    list.innerHTML = items.map(function (it, i) {
+      if (!it) {
+        return '<div class="slot" data-slot="' + i + '">' +
+          '<span class="slot-no">' + pad(i + 1) + '</span>' +
+          '<div class="slot-meta"><b>空档位</b><span>存入当前推演进度</span></div>' +
+          '<div class="slot-ops"><button type="button" data-act="save"' + (S ? '' : ' disabled') + '>存入</button></div>' +
+          '</div>';
+      }
+      n++;
+      return '<div class="slot on" data-slot="' + i + '">' +
+        '<span class="slot-no">' + pad(i + 1) + '</span>' +
+        '<div class="slot-meta"><b>' + esc(it.startDate) + ' 起 · 至 ' + esc(it.date) + '</b>' +
+        '<span>' + money(it.total) + ' · 累计 <em class="' + cls(it.ret) + '">' + pct(it.ret) + '</em>' +
+        ' · 保存于 ' + esc(String(it.at || '').slice(0, 10)) + '</span></div>' +
+        '<div class="slot-ops"><button type="button" data-act="load">读取</button>' +
+        '<button type="button" class="danger" data-act="del">删除</button></div>' +
+        '</div>';
+    }).join('');
+
+    var now = document.getElementById('slotNow');
+    if (now) {
+      now.textContent = S
+        ? '当前推演 · ' + S.date + ' · 已用 ' + n + '/10 档'
+        : '当前没有进行中的复盘 · 已用 ' + n + '/10 档';
+    }
+    var btn = document.getElementById('slotReset');
+    if (btn) btn.disabled = !S;
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+
   return {
     ICON: ICON, esc: esc, num: num, money: money, short: short, pct: pct, px: px, cls: cls,
     toast: toast, header: header, refreshHead: refreshHead, boot: boot,
-    requireSession: requireSession, download: download, csv: csv
+    requireSession: requireSession, download: download, csv: csv, slotsDialog: slotsDialog
   };
 })();

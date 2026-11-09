@@ -58,7 +58,11 @@ SB.engine = (function () {
   function init() { M = SB.market; }
 
   function load() {
-    var raw = SB.store.load();
+    return adopt(SB.store.load());
+  }
+
+  /* 归一化并接管一份会话（当前进度或存档） */
+  function adopt(raw) {
     if (!raw || raw.v !== 1 || !raw.date) return null;
     S = raw;
     if (!S.pos) S.pos = {};
@@ -74,6 +78,32 @@ SB.engine = (function () {
   function save() { if (S) SB.store.save(S); }
   function session() { return S; }
   function clear() { S = null; SB.store.clear(); }
+
+  /* ---------- 10 档存档 ---------- */
+  function slots() { return SB.store.slots(); }
+  function saveSlot(i) {
+    if (!S) return { ok: false, msg: '还没有进行中的复盘' };
+    SB.store.putSlot(i, {
+      at: new Date().toISOString(),
+      startDate: S.startDate,
+      date: S.date,
+      initCash: S.initCash,
+      total: portfolioValue(S.date),
+      ret: portfolioValue(S.date) / S.initCash - 1,
+      session: JSON.parse(JSON.stringify(S))
+    });
+    return { ok: true };
+  }
+  function loadSlot(i) {
+    var item = SB.store.slots()[i];
+    if (!item || !item.session) return { ok: false, msg: '该档位没有存档' };
+    var s = adopt(JSON.parse(JSON.stringify(item.session)));
+    if (!s) return { ok: false, msg: '存档已损坏' };
+    save();
+    return { ok: true, msg: '已读取第 ' + (i + 1) + ' 档存档' };
+  }
+  function dropSlot(i) { SB.store.dropSlot(i); }
+  function reset() { S = null; SB.store.clear(); }
 
   function dateIdx() { return cal().indexOf(S.date); }
   function date() { return S.date; }
@@ -283,6 +313,7 @@ SB.engine = (function () {
     position: position, shares: shares, marketValue: marketValue, portfolioValue: portfolioValue,
     trade: trade, advanceTo: advanceTo, metrics: metrics, benchmark: benchmark,
     addWatch: addWatch, removeWatch: removeWatch, setDrip: setDrip,
+    slots: slots, saveSlot: saveSlot, loadSlot: loadSlot, dropSlot: dropSlot, reset: reset,
     fees: fees, snapIdx: snapIdx, dayDiff: dayDiff
   };
 })();

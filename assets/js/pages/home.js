@@ -12,6 +12,7 @@
     document.getElementById('hpStocks').textContent = meta.stocks.length + ' 只';
     document.getElementById('hpRange').textContent = meta.calendar[0] + ' → ' + meta.endDate;
     document.getElementById('hpDays').textContent = meta.calendar.length.toLocaleString('en-US') + ' 个';
+    document.getElementById('ctaSlots').addEventListener('click', function () { U.slotsDialog(); });
 
     if (S) {
       var m = SB.engine.metrics();

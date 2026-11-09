@@ -409,6 +409,8 @@
       renderAll();
     });
 
+    $('tbSlots').addEventListener('click', function () { U.slotsDialog(); });
+
     $('pSeg').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
