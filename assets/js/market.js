@@ -4,21 +4,42 @@ SB.market = (function () {
   var meta = null;
   var stocks = {};
   var fxCache = {};
+  var idxBars = [];
 
   function loadOne(code) {
     return fetch('data/' + code + '.json', { cache: 'no-cache' }).then(function (r) { return r.json(); });
+  }
+
+  function loadIndex() {
+    return fetch('data/index.json', { cache: 'no-cache' }).then(function (r) { return r.json(); })
+      .then(function (j) { idxBars = j.SH000001 || []; })
+      .catch(function () { idxBars = []; });
   }
 
   function load() {
     return fetch('data/meta.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (m) {
       meta = m;
       var tasks = m.stocks.map(function (s) { return loadOne(s.code); });
-      return Promise.all(tasks);
+      return Promise.all(tasks.concat([loadIndex()]));
     }).then(function (arr) {
-      arr.forEach(function (st) { prepare(st); stocks[st.code] = st; });
+      arr.forEach(function (st) { if (st && st.code) { prepare(st); stocks[st.code] = st; } });
       buildFx();
       return true;
     });
+  }
+
+  /* 上证指数：不晚于 date 的收盘与涨跌幅（严格当日可见） */
+  function indexAt(date) {
+    if (!idxBars.length) return null;
+    var lo = 0, hi = idxBars.length - 1, ans = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (idxBars[mid][0] <= date) { ans = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    if (ans < 0) return null;
+    var close = idxBars[ans][1];
+    var prev = ans > 0 ? idxBars[ans - 1][1] : close;
+    return { date: idxBars[ans][0], close: close, chg: prev ? close / prev - 1 : 0 };
   }
 
   function prepare(st) {
@@ -368,6 +389,7 @@ SB.market = (function () {
     stocks: function () { return stocks; },
     stock: stock,
     barAt: barAt,
+    indexAt: indexAt,
     priceAt: priceAt,
     priceOn: priceOn,
     adjustedClose: adjustedClose,

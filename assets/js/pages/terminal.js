@@ -99,6 +99,16 @@
         : '还没有买入记录，勾选后暂无可比基准';
     }
     $('aDiv').textContent = U.money(m.div);
+    var idx = M.indexAt(S.date);
+    var iEl = $('aIdx');
+    if (idx) {
+      iEl.textContent = idx.close.toFixed(2) + ' ' + U.pct(idx.chg);
+      iEl.className = U.cls(idx.chg);
+      iEl.title = '上证指数 ' + idx.date + ' 收盘 ' + idx.close.toFixed(2) + '，较前一交易日 ' + U.pct(idx.chg);
+    } else {
+      iEl.textContent = '--';
+      iEl.className = '';
+    }
   }
 
   function renderSelect() {

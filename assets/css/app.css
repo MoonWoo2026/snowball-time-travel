@@ -142,7 +142,7 @@ input,select{font-family:inherit}
 
 /* ---------- 终端 ---------- */
 .term{max-width:1440px;margin:0 auto;padding:12px 20px 16px;display:flex;flex-direction:column;gap:10px}
-.acct-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr)) auto;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:10px 16px}
+.acct-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) auto;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:10px 16px}
 .acct{display:flex;flex-direction:column;gap:1px;min-width:0}
 .acct span{font-size:9.5px;color:var(--faint);letter-spacing:.6px}
 .acct b{font-family:var(--mono);font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

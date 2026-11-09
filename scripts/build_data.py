@@ -338,6 +338,12 @@ def main():
         print('%-6s %-6s bars=%-5d events=%-3d reports=%d' % (code, cfg['name'], len(bars), len(events), len(reports)))
 
     meta['calendar'] = sorted(all_dates)
+
+    idx = klines('1.000001', 'SH000001')
+    (DATA / 'index.json').write_text(
+        json.dumps({'SH000001': [[b[0], b[4]] for b in idx]}, separators=(',', ':')), encoding='utf-8')
+    print('上证指数 %d 根，%s ~ %s' % (len(idx), idx[0][0], idx[-1][0]))
+
     (DATA / 'meta.json').write_text(
         json.dumps(meta, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     print('\n写入 %d 个标的，交易日 %d 个，数据截止 %s' % (len(counts), len(meta['calendar']), END))
