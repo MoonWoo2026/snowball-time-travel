@@ -10,6 +10,16 @@
   var S = null;
   var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos' };
   var chart, growth, curve;
+  var playTimer = null;
+
+  function addMonths(dateStr, months) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    var day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + months);
+    d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
+    return d.toISOString().slice(0, 10);
+  }
 
   function $(id) { return document.getElementById(id); }
   function lot(code) { return M.stock(code).market === 'A' ? 100 : 1; }
@@ -463,12 +473,42 @@
       var cal = E.calendar();
       if (step === 'today') return jumpTo(cal[cal.length - 1]);
       var months = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36 }[step];
-      var d = new Date(S.date + 'T00:00:00Z');
-      var day = d.getUTCDate();
-      d.setUTCDate(1);
-      d.setUTCMonth(d.getUTCMonth() + months);
-      d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
-      jumpTo(d.toISOString().slice(0, 10));
+      jumpTo(addMonths(S.date, months));
+    });
+
+    $('waitGo').addEventListener('click', function () {
+      var y = Math.max(0, parseInt($('waitY').value, 10) || 0);
+      var m = Math.max(0, parseInt($('waitM').value, 10) || 0);
+      if (!y && !m) return U.toast('请输入等待时长（年 / 月）');
+      U.toast('等待 ' + (y ? y + ' 年 ' : '') + m + ' 个月…');
+      jumpTo(addMonths(S.date, y * 12 + m));
+    });
+
+    $('tbPlay').addEventListener('click', function () {
+      var btn = $('tbPlay');
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+        btn.textContent = '▶ 连续滚动';
+        btn.classList.remove('on');
+        return;
+      }
+      var cal = E.calendar();
+      if (S.date >= cal[cal.length - 1]) return U.toast('已到最后一个交易日');
+      btn.textContent = '⏸ 停止滚动';
+      btn.classList.add('on');
+      playTimer = setInterval(function () {
+        cal = E.calendar();
+        if (S.date >= cal[cal.length - 1]) {
+          clearInterval(playTimer);
+          playTimer = null;
+          btn.textContent = '▶ 连续滚动';
+          btn.classList.remove('on');
+          U.toast('已滚动到最后一个交易日');
+          return;
+        }
+        jumpTo(addMonths(S.date, 1));
+      }, 650);
     });
 
     $('tbGo').addEventListener('click', function () {

@@ -28,12 +28,18 @@
       <span class="end" id="tbEnd">--</span>
     </div>
     <div class="tb-quick">
-      <button data-step="1m">+1月</button>
+      <button data-step="1m">下一月</button>
       <button data-step="3m">+3月</button>
       <button data-step="6m">+6月</button>
       <button data-step="1y">+1年</button>
       <button data-step="3y">+3年</button>
       <button data-step="today" class="gold">推到现在</button>
+      <span class="tb-wait">
+        <input type="number" id="waitY" min="0" max="40" value="0" aria-label="年"> 年
+        <input type="number" id="waitM" min="0" max="11" value="3" aria-label="月"> 月
+        <button id="waitGo">等待</button>
+      </span>
+      <button id="tbPlay" class="play">▶ 连续滚动</button>
       <input type="date" id="tbJump" aria-label="跳转到日期">
       <button id="tbGo">推进</button>
     </div>
