@@ -306,7 +306,7 @@ input,select{font-family:inherit}
 .rv-card{background:#fff;border:1px solid var(--rule);border-radius:10px;padding:14px 16px}
 .rv-card h3{font-size:11px;font-family:var(--mono);letter-spacing:.8px;color:var(--faint);font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
 .rv-card h3 span{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;letter-spacing:0}
-#rvCurve{height:280px}
+#rvCurve{height:430px}
 #rvMark{height:300px}
 .rv-list{max-height:300px;overflow:auto}
 .rv-list table{width:100%;border-collapse:collapse;font-size:11px}
@@ -314,6 +314,17 @@ input,select{font-family:inherit}
 .rv-list td{padding:5px 8px;border-bottom:1px solid #F6F3EC;white-space:nowrap}
 .rv-list td.n,.rv-list th.n{font-family:var(--mono);text-align:right}
 .rv-foot{margin-top:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:10.5px;color:var(--faint);border-top:1px solid var(--rule);padding-top:12px}
+.rv-style{margin-bottom:14px}
+.rv-style .sty-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.rv-style .sty-tag{font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--rule);color:var(--muted);background:#FBFAF7}
+.rv-style .sty-tag.hi{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.rv-style .sty-tag.warn{border-color:#D8C3A5;color:#8A5A1E;background:#FBF4E9}
+.rv-style .sty-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px;margin-bottom:10px}
+.rv-style .sty-item{min-width:0}
+.rv-style .sty-item span{display:block;font-size:9px;color:var(--faint);letter-spacing:.5px}
+.rv-style .sty-item b{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
+.rv-style .sty-note{font-size:11px;line-height:1.7;color:var(--muted)}
+.rv-style .sty-note b{color:var(--ink)}
 
 /* toast */
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#1C2126;color:#fff;font-size:12px;padding:9px 16px;border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:all .22s;z-index:100;max-width:90vw}
@@ -377,6 +388,8 @@ input,select{font-family:inherit}
   .site-head,.dock,.rv-actions,.rv-foot{display:none}
   body{background:#fff}
   .rv-card,.kpi{break-inside:avoid}
+  .review{padding:0}
+  #rvCurve{height:400px}
 }
 
 /* ---------- 存档：时间栏按钮与弹窗 ---------- */

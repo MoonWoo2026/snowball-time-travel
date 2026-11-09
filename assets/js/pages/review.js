@@ -38,6 +38,7 @@
   function render() {
     var m = E.metrics();
     var eq = E.equity();
+    var rep = replay();
     var dd = maxDrawdown(eq);
     var fees = S.trades.reduce(function (a, t) { return a + t.fee; }, 0);
 
@@ -52,7 +53,8 @@
       return '<div class="kpi"><span>' + k[0] + '</span><b class="' + color + '">' + k[1] + '</b><em>' + k[2] + '</em></div>';
     }).join('');
 
-    renderCurve(eq);
+    renderCurve(eq, rep);
+    renderStyle(rep);
     renderMark(m, fees);
     renderHoldings();
     renderDivs();
@@ -70,6 +72,45 @@
     };
   }
 
+  var KIND = { open: '建仓', add: '加仓', cut: '减仓', close: '清仓' };
+
+  function days(a, b) {
+    return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000));
+  }
+
+  /* 回放成交：区分建仓/加仓/减仓/清仓，并按移动加权成本算出每笔已实现盈亏 */
+  function replay() {
+    var hold = {}, events = [], rounds = [];
+    S.trades.forEach(function (t) {
+      var s = hold[t.code] || (hold[t.code] = { shares: 0, cost: 0, open: null, pnl: 0 });
+      var before = s.shares, kind, realized = 0;
+      if (t.side === 'buy') {
+        if (before === 0) { kind = 'open'; s.open = t.date; s.pnl = 0; }
+        else kind = 'add';
+        s.shares += t.qty;
+        s.cost += t.amount + t.fee;
+      } else {
+        var avg = s.shares ? s.cost / s.shares : 0;
+        realized = (t.amount - t.fee) - avg * t.qty;
+        s.pnl += realized;
+        kind = (before - t.qty <= 0) ? 'close' : 'cut';
+        s.cost -= avg * t.qty;
+        s.shares -= t.qty;
+        if (kind === 'close') {
+          rounds.push({ code: t.code, name: t.name, open: s.open, close: t.date, pnl: s.pnl });
+          s.pnl = 0;
+          s.open = null;
+        }
+      }
+      events.push({
+        date: t.date, code: t.code, name: t.name, side: t.side, kind: kind,
+        qty: t.qty, amount: t.amount, price: t.price, cur: t.cur,
+        fx: t.fx, realized: realized, sharesAfter: s.shares
+      });
+    });
+    return { events: events, rounds: rounds };
+  }
+
   function benchAt(date) {
     var total = 0, n = 0;
     S.initialWatch.forEach(function (code) {
@@ -82,43 +123,244 @@
     return n ? S.initCash * (1 + total / n) : S.initCash;
   }
 
-  function renderCurve(eq) {
+  function renderCurve(eq, rep) {
     if (!eq.length) return;
+    var evDates = {};
+    rep.events.forEach(function (e) { evDates[e.date] = 1; });
     var step = Math.max(1, Math.floor(eq.length / 300));
-    var pts = eq.filter(function (x, i) { return i % step === 0 || i === eq.length - 1; });
-    var lows = pts.map(function (x) { return x.v; });
+    var pts = eq.filter(function (x, i) {
+      return i % step === 0 || i === eq.length - 1 || evDates[x.d];
+    });
+    var cats = pts.map(function (x) { return x.d; });
+    var idx = {};
+    cats.forEach(function (d, i) { idx[d] = i; });
+    var nav = pts.map(function (x) { return x.v; });
     var bench = pts.map(function (x) { return benchAt(x.d); });
-    $('curveTag').textContent = '基准 ' + U.money(E.benchmark()) + ' · 超额 ' + U.pct(E.benchmark() ? E.metrics().total / E.benchmark() - 1 : 0);
+
+    var flowIn = cats.map(function () { return 0; });
+    var flowOut = cats.map(function () { return 0; });
+    var marks = [];
+    rep.events.forEach(function (e) {
+      var i = idx[e.date];
+      if (i === undefined) return;
+      var up = e.side === 'buy';
+      if (up) flowIn[i] += e.amount; else flowOut[i] -= e.amount;
+      marks.push({
+        value: [e.date, nav[i]],
+        name: e.name,
+        symbol: 'triangle',
+        symbolRotate: up ? 0 : 180,
+        symbolSize: (e.kind === 'open' || e.kind === 'close') ? 10 : 7,
+        itemStyle: { color: up ? C.up : C.down },
+        label: {
+          show: true, position: up ? 'bottom' : 'top',
+          fontSize: 8.5, color: up ? C.up : C.down,
+          formatter: e.name.length > 4 ? e.name.slice(0, 4) : e.name
+        },
+        ext: e
+      });
+    });
+
+    $('curveTag').textContent = '基准 ' + U.money(E.benchmark()) +
+      ' · 超额 ' + U.pct(E.benchmark() ? E.metrics().total / E.benchmark() - 1 : 0) +
+      ' · ' + rep.events.length + ' 个买卖点';
 
     rvCurve.setOption({
       animation: false,
-      grid: { left: 54, right: 14, top: 18, bottom: 24 },
+      grid: [
+        { left: 56, right: 16, top: 28, height: '54%' },
+        { left: 56, right: 16, top: '73%', height: '15%' }
+      ],
+      axisPointer: { link: [{ xAxisIndex: 'all' }] },
       tooltip: {
         trigger: 'axis', backgroundColor: '#fff', borderColor: '#E3DED3',
         textStyle: { color: '#1C2126', fontSize: 11 },
         formatter: function (ps) {
           var s = '<b>' + ps[0].axisValue + '</b>';
           ps.forEach(function (p) {
-            s += '<br>' + p.marker + p.seriesName + '：' + U.money(p.value);
+            if (p.seriesName === '买卖点') {
+              var e = p.data && p.data.ext;
+              if (!e) return;
+              s += '<br>' + p.marker + '<b>' + KIND[e.kind] + '</b> ' + U.esc(e.name) +
+                ' · ' + e.qty.toLocaleString('en-US') + ' 股 @ ' + U.px(e.price, e.cur);
+              if (e.side === 'sell') s += ' · 实现 <b class="' + U.cls(e.realized) + '">' + U.money(e.realized) + '</b>';
+            } else if (p.seriesName === '加仓' || p.seriesName === '减仓') {
+              if (!p.value) return;
+              s += '<br>' + p.marker + p.seriesName + '：' + U.money(Math.abs(p.value));
+            } else if (typeof p.value === 'number') {
+              s += '<br>' + p.marker + p.seriesName + '：' + U.money(p.value);
+            }
           });
           return s;
         }
       },
-      legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 9, itemHeight: 9, textStyle: { fontSize: 10, color: C.muted } },
-      xAxis: { type: 'category', data: pts.map(function (x) { return x.d; }), axisLine: { lineStyle: { color: C.rule } }, axisTick: { show: false }, axisLabel: { fontSize: 9, color: C.faint, hideOverlap: true } },
-      yAxis: { type: 'value', scale: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 9, color: C.faint, formatter: function (v) { return (v / 1e4).toFixed(0) + '万'; } }, splitLine: { lineStyle: { color: C.rule, type: 'dashed' } } },
+      legend: {
+        top: 0, right: 0, icon: 'roundRect', itemWidth: 9, itemHeight: 9,
+        textStyle: { fontSize: 10, color: C.muted },
+        data: ['我的账户', '等权买入持有', '买卖点', '加仓', '减仓']
+      },
+      xAxis: [
+        {
+          type: 'category', gridIndex: 0, data: cats,
+          axisLine: { lineStyle: { color: C.rule } }, axisTick: { show: false },
+          axisLabel: { show: false }
+        },
+        {
+          type: 'category', gridIndex: 1, data: cats,
+          axisLine: { lineStyle: { color: C.rule } }, axisTick: { show: false },
+          axisLabel: { fontSize: 9, color: C.faint, hideOverlap: true }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value', gridIndex: 0, scale: true,
+          axisLine: { show: false }, axisTick: { show: false },
+          axisLabel: { fontSize: 9, color: C.faint, formatter: function (v) { return (v / 1e4).toFixed(0) + '万'; } },
+          splitLine: { lineStyle: { color: C.rule, type: 'dashed' } }
+        },
+        {
+          type: 'value', gridIndex: 1, splitNumber: 2,
+          axisLine: { show: false }, axisTick: { show: false },
+          axisLabel: { fontSize: 8, color: C.faint, formatter: function (v) { return Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(0) + '万' : ''; } },
+          splitLine: { show: false }
+        }
+      ],
       series: [
         {
-          name: '我的账户', type: 'line', data: pts.map(function (x) { return x.v; }), symbol: 'none',
+          name: '我的账户', type: 'line', xAxisIndex: 0, yAxisIndex: 0,
+          data: nav, symbol: 'none', z: 3,
           lineStyle: { width: 1.8, color: C.accent },
           areaStyle: { color: 'rgba(30,58,95,.06)' }
         },
         {
-          name: '等权买入持有', type: 'line', data: bench, symbol: 'none',
+          name: '等权买入持有', type: 'line', xAxisIndex: 0, yAxisIndex: 0,
+          data: bench, symbol: 'none',
           lineStyle: { width: 1.2, color: C.gold, type: 'dashed' }
+        },
+        {
+          name: '买卖点', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0,
+          data: marks, z: 10,
+          labelLayout: { hideOverlap: true }
+        },
+        {
+          name: '加仓', type: 'bar', xAxisIndex: 1, yAxisIndex: 1,
+          data: flowIn, barMaxWidth: 8, itemStyle: { color: C.up }
+        },
+        {
+          name: '减仓', type: 'bar', xAxisIndex: 1, yAxisIndex: 1,
+          data: flowOut, barMaxWidth: 8, itemStyle: { color: C.down }
         }
       ]
     }, true);
+  }
+
+  function renderStyle(rep) {
+    var m = E.metrics();
+    var eq = E.equity();
+    var years = Math.max(0.08, m.days / 365);
+
+    /* 现金随时间的变化：用于还原股票仓位 */
+    var deltas = S.trades.map(function (t) {
+      return { d: t.date, v: t.side === 'buy' ? -(t.amount + t.fee) : (t.amount - t.fee) };
+    }).concat(S.divs.map(function (d) { return { d: d.date, v: d.net }; }))
+      .sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+
+    var di = 0, cash = S.initCash;
+    var sumAll = 0, nAll = 0, sumPost = 0, nPost = 0;
+    var eqMap = {};
+    var firstBuy = null;
+    rep.events.forEach(function (e) { if (!firstBuy) firstBuy = e.date; });
+    eq.forEach(function (p) {
+      while (di < deltas.length && deltas[di].d <= p.d) { cash += deltas[di].v; di++; }
+      eqMap[p.d] = p.v;
+      var sr = p.v > 0 ? 1 - cash / p.v : 0;
+      if (sr < 0) sr = 0;
+      if (sr > 1) sr = 1;
+      sumAll += sr; nAll++;
+      if (firstBuy && p.d >= firstBuy) { sumPost += sr; nPost++; }
+    });
+    var avgStock = nAll ? sumAll / nAll : 0;
+    var avgPost = nPost ? sumPost / nPost : avgStock;
+    var finalCashRatio = m.total > 0 ? m.cash / m.total : 0;
+
+    /* 最高单票权重：在每次成交日按成交后股数估算 */
+    var maxW = 0, maxWName = '';
+    rep.events.forEach(function (e) {
+      var total = eqMap[e.date];
+      if (!total) return;
+      var st = M.stock(e.code);
+      if (!e.sharesAfter) return;
+      var px = M.priceAt(e.code, e.date) || e.price;
+      var mv = e.sharesAfter * px * M.toCNY(1, st.currency, e.date);
+      if (mv / total > maxW) { maxW = mv / total; maxWName = e.name; }
+    });
+
+    var turnover = S.trades.reduce(function (a, t) { return a + t.amount; }, 0);
+    var yearTurnover = turnover / years / Math.max(1, (S.initCash + m.total) / 2);
+
+    var wins = rep.rounds.filter(function (r) { return r.pnl > 0; });
+    var losses = rep.rounds.filter(function (r) { return r.pnl < 0; });
+    var winRate = rep.rounds.length ? wins.length / rep.rounds.length : null;
+    var avgWin = wins.length ? wins.reduce(function (a, r) { return a + r.pnl; }, 0) / wins.length : 0;
+    var avgLoss = losses.length ? losses.reduce(function (a, r) { return a + r.pnl; }, 0) / losses.length : 0;
+    var pf = avgLoss ? Math.abs(avgWin / avgLoss) : (avgWin ? Infinity : null);
+    var holdDays = rep.rounds.length
+      ? Math.round(rep.rounds.reduce(function (a, r) { return a + days(r.open, r.close); }, 0) / rep.rounds.length)
+      : null;
+
+    /* 风格标签 */
+    var tags = [];
+    if (avgPost >= 0.8) tags.push(['建仓后接近满仓', 'hi']);
+    else if (avgPost >= 0.5) tags.push(['建仓后均衡仓位', '']);
+    else if (avgPost >= 0.2) tags.push(['轻仓试探', 'warn']);
+    else tags.push(['极度耐心·长期持币', 'warn']);
+
+    if (maxW >= 0.4) tags.push(['集中持股', 'hi']);
+    else if (maxW >= 0.22) tags.push(['适度分散', '']);
+    else tags.push(['高度分散', '']);
+
+    var perYear = S.trades.length / years;
+    if (perYear >= 10) tags.push(['高频调仓', 'warn']);
+    else if (perYear >= 3) tags.push(['适度交易', '']);
+    else tags.push(['低频长期持有', 'hi']);
+
+    if (winRate !== null) {
+      if (winRate >= 0.6) tags.push(['胜率偏高', 'hi']);
+      else if (winRate <= 0.35) tags.push(['胜率偏低', 'warn']);
+    }
+    if (pf !== null && pf >= 2) tags.push(['盈亏比优秀', 'hi']);
+    if (finalCashRatio >= 0.5) tags.push(['现金尚未部署完', 'warn']);
+
+    var items = [
+      ['平均股票仓位', (avgStock * 100).toFixed(1) + '%', '全程'],
+      ['建仓后仓位', (avgPost * 100).toFixed(1) + '%', '首次买入起'],
+      ['最高单票权重', (maxW * 100).toFixed(1) + '%', maxWName || '--'],
+      ['年化换手率', (yearTurnover * 100).toFixed(0) + '%', S.trades.length + ' 笔'],
+      ['已实现胜率', winRate === null ? '--' : (winRate * 100).toFixed(0) + '%', rep.rounds.length + ' 次清仓'],
+      ['盈亏比', pf === null ? '--' : (pf === Infinity ? '∞' : pf.toFixed(2)), '平均盈利 / 平均亏损'],
+      ['平均持有', holdDays === null ? '--' : holdDays + ' 天', '已清仓回合'],
+      ['期末现金占比', (finalCashRatio * 100).toFixed(1) + '%', U.money(m.cash)]
+    ];
+
+    $('rvStyle').innerHTML =
+      '<h3>策略风格总结 <span>' + S.startDate + ' → ' + S.date + ' · ' + years.toFixed(1) + ' 年</span></h3>' +
+      '<div class="sty-tags">' + tags.map(function (t) {
+        return '<span class="sty-tag ' + t[1] + '">' + t[0] + '</span>';
+      }).join('') + '</div>' +
+      '<div class="sty-grid">' + items.map(function (it) {
+        return '<div class="sty-item"><span>' + it[0] + '</span><b>' + it[1] + '</b>' +
+          '<span>' + it[2] + '</span></div>';
+      }).join('') + '</div>' +
+      '<p class="sty-note">全程股票仓位 <b>' + (avgStock * 100).toFixed(1) + '%</b>，首次买入后平均 <b>' +
+      (avgPost * 100).toFixed(1) + '%</b>。共 <b>' + S.trades.length + '</b> 笔成交、覆盖 <b>' +
+      Object.keys(rep.events.reduce(function (o, e) { o[e.code] = 1; return o; }, {})).length +
+      '</b> 只标的，年化换手约 <b>' + (yearTurnover * 100).toFixed(0) + '%</b>。' +
+      (winRate === null ? '尚未产生完整清仓回合，风格判定偏重仓位与节奏。' :
+        '已清仓 <b>' + rep.rounds.length + '</b> 次，胜率 <b>' + (winRate * 100).toFixed(0) +
+        '%</b>，盈亏比 <b>' + (pf === Infinity ? '∞' : pf.toFixed(2)) + '</b>，平均持有 <b>' +
+        holdDays + '</b> 天。') +
+      (finalCashRatio >= 0.5 ? ' 期末仍有 <b>' + (finalCashRatio * 100).toFixed(0) + '%</b> 现金未部署，资金效率还有提升空间。' : '') +
+      '</p>';
   }
 
   function renderMark(m, fees) {
