@@ -77,12 +77,27 @@
     $('aTotal').textContent = U.money(m.total);
     $('aCash').textContent = U.money(m.cash);
     $('aMv').textContent = U.money(m.mv);
-    var ret = $('aRet');
-    ret.textContent = U.pct(m.ret);
-    ret.className = U.cls(m.ret);
-    var cagr = $('aCagr');
-    cagr.textContent = m.cagr === null ? '--' : U.pct(m.cagr);
-    cagr.className = U.cls(m.cagr || 0);
+    var onBuy = $('aFromBuy').checked && m.buy;
+    var ret = $('aRet'), cagr = $('aCagr');
+    if (onBuy) {
+      $('aRetLbl').textContent = '买入后收益';
+      $('aCagrLbl').textContent = '买入后年化';
+      ret.textContent = U.pct(m.buy.ret);
+      ret.className = U.cls(m.buy.ret);
+      cagr.textContent = m.buy.cagr === null ? '--' : U.pct(m.buy.cagr);
+      cagr.className = U.cls(m.buy.cagr || 0);
+      $('aFromBuy').title = '基准 ' + m.buy.from + ' 总资产 ' + U.money(m.buy.base) + ' · ' + m.buy.days + ' 天';
+    } else {
+      $('aRetLbl').textContent = '累计收益';
+      $('aCagrLbl').textContent = '年化收益';
+      ret.textContent = U.pct(m.ret);
+      ret.className = U.cls(m.ret);
+      cagr.textContent = m.cagr === null ? '--' : U.pct(m.cagr);
+      cagr.className = U.cls(m.cagr || 0);
+      $('aFromBuy').title = m.firstBuy
+        ? '以首次买入日 ' + m.firstBuy + ' 的组合总资产为基准'
+        : '还没有买入记录，勾选后暂无可比基准';
+    }
     $('aDiv').textContent = U.money(m.div);
   }
 
@@ -492,6 +507,15 @@
 
   /* ---------- 交互 ---------- */
   function bind() {
+    $('aFromBuy').addEventListener('change', function () {
+      if (this.checked && !E.metrics().buy) {
+        this.checked = false;
+        U.toast('还没有买入记录，先买一笔再看买入后收益');
+        return;
+      }
+      renderAcct();
+    });
+
     $('stockSel').addEventListener('change', function () {
       state.code = this.value;
       $('qty').value = '';

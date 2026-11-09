@@ -15,9 +15,13 @@
     <div class="acct"><span>总资产</span><b class="accent" id="aTotal">--</b></div>
     <div class="acct"><span>可用现金</span><b id="aCash">--</b></div>
     <div class="acct"><span>持仓市值</span><b id="aMv">--</b></div>
-    <div class="acct"><span>累计收益</span><b id="aRet">--</b></div>
-    <div class="acct"><span>年化收益</span><b id="aCagr">--</b></div>
+    <div class="acct"><span id="aRetLbl">累计收益</span><b id="aRet">--</b></div>
+    <div class="acct"><span id="aCagrLbl">年化收益</span><b id="aCagr">--</b></div>
     <div class="acct"><span>累计分红</span><b id="aDiv">--</b></div>
+    <label class="acct acct-opt" title="以首次买入日的组合总资产为基准，等待期不计入收益与年化">
+      <input type="checkbox" id="aFromBuy">
+      <i>从首次买入算</i>
+    </label>
   </section>
 
   <section class="timebar">

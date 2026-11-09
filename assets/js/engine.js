@@ -260,6 +260,21 @@ SB.engine = (function () {
     save();
   }
 
+  function firstBuyDate() {
+    for (var i = 0; i < S.trades.length; i++) {
+      if (S.trades[i].side === 'buy') return S.trades[i].date;
+    }
+    return null;
+  }
+
+  /* 取某日（含）之后第一条净值记录，用于「从首次买入算」的基准 */
+  function valueAt(dateStr) {
+    for (var i = 0; i < S.equity.length; i++) {
+      if (S.equity[i].d >= dateStr) return S.equity[i].v;
+    }
+    return null;
+  }
+
   function metrics() {
     var total = portfolioValue(S.date);
     var ret = total / S.initCash - 1;
@@ -267,10 +282,25 @@ SB.engine = (function () {
     var cagr = days < 30 ? null : Math.pow(total / S.initCash, 365 / days) - 1;
     var divTotal = S.divs.reduce(function (a, x) { return a + x.net; }, 0);
     var divGross = S.divs.reduce(function (a, x) { return a + x.gross; }, 0);
+
+    /* 从首次买入日算：基准为该日收盘时的组合总资产，等待期不计入分母与时间 */
+    var fb = firstBuyDate(), buy = null;
+    if (fb) {
+      var base = valueAt(fb);
+      if (base && base > 0) {
+        var bd = Math.max(1, dayDiff(fb, S.date));
+        buy = {
+          from: fb, base: base, days: bd,
+          ret: total / base - 1,
+          cagr: bd < 30 ? null : Math.pow(total / base, 365 / bd) - 1
+        };
+      }
+    }
+
     return {
       total: total, cash: S.cash, mv: marketValue(S.date),
       ret: ret, cagr: cagr, div: divTotal, divGross: divGross,
-      days: days, trades: S.trades.length,
+      days: days, trades: S.trades.length, firstBuy: fb, buy: buy,
       holdings: Object.keys(S.pos).filter(function (c) { return S.pos[c].shares > 0; }).length
     };
   }
