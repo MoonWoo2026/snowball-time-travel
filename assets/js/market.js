@@ -254,7 +254,10 @@ SB.market = (function () {
     var latest = reports[reports.length - 1] || null;
     var annual = latestReport(code, date, true);
     var annualEps = annual ? convert(annual.eps, annual.cur, st.currency, annual.disc) : null;
-    var bvps = latest ? convert(latest.bvps, latest.cur, st.currency, latest.disc) : null;
+    var bvps = null;
+    for (var bi = reports.length - 1; bi >= 0 && bvps === null; bi--) {
+      bvps = convert(reports[bi].bvps, reports[bi].cur, st.currency, reports[bi].disc);
+    }
     var ttmEps = null;
     if (reports.length) {
       var cutoff = new Date(date + 'T00:00:00Z');
@@ -267,15 +270,44 @@ SB.market = (function () {
       });
       if (cnt >= 2) ttmEps = sum;
     }
-    var dps12 = 0;
+    /* 近 12 个月已派股息；若期间无派息，退化为最近一次派息（年付股息避免出现 0 收益率） */
+    var dps12 = 0, lastDps = 0, lastDate = '';
     st.events.forEach(function (ev) {
       if (!ev.dps) return;
       var d = new Date(date + 'T00:00:00Z');
       d.setUTCFullYear(d.getUTCFullYear() - 1);
-      if (ev.date > d.toISOString().slice(0, 10) && ev.date <= date) {
+      var dCut = d.toISOString().slice(0, 10);
+      if (ev.date > dCut && ev.date <= date) {
         dps12 += toHKD(ev.dps, ev.cur || st.currency, ev.date);
+      } else if (ev.date <= date && ev.date > lastDate) {
+        lastDate = ev.date;
+        lastDps = toHKD(ev.dps, ev.cur || st.currency, ev.date);
       }
     });
+    if (!dps12) dps12 = lastDps;
+
+    /* 最新报告期同比（A 股为单季，港股为半年度口径） */
+    var growth = null;
+    if (latest) {
+      var ly = String(+latest.date.slice(0, 4) - 1), tail = latest.date.slice(4), yoy = null;
+      for (var gi = reports.length - 2; gi >= 0; gi--) {
+        if (reports[gi].date.slice(0, 4) === ly && reports[gi].date.slice(4) === tail) {
+          yoy = reports[gi];
+          break;
+        }
+      }
+      if (yoy) {
+        var revNow = convert(latest.revQ, latest.cur, st.currency, latest.disc);
+        var revOld = convert(yoy.revQ, yoy.cur, st.currency, yoy.disc);
+        var npNow = convert(latest.npQ, latest.cur, st.currency, latest.disc);
+        var npOld = convert(yoy.npQ, yoy.cur, st.currency, yoy.disc);
+        growth = {
+          rev: revNow !== null && revOld > 0 ? revNow / revOld - 1 : null,
+          np: npNow !== null && npOld > 0 ? npNow / npOld - 1 : null
+        };
+      }
+    }
+
     return {
       price: price,
       bvps: bvps,
@@ -285,7 +317,48 @@ SB.market = (function () {
       pe: annualEps ? price / annualEps : null,
       peTtm: ttmEps ? price / ttmEps : null,
       divYield: price ? dps12 / price : null,
+      roe: ttmEps !== null && bvps > 0 ? ttmEps / bvps : null,
+      growth: growth,
       report: latest
+    };
+  }
+
+  /* 估值历史分位：按各期财报披露日的价格与当时可见的净资产 / TTM EPS 计算 */
+  function valueBand(code, date, years, curPb, curPe) {
+    var st = stocks[code];
+    if (!st) return null;
+    var start = new Date(date + 'T00:00:00Z');
+    start.setUTCFullYear(start.getUTCFullYear() - (years || 5));
+    var from = start.toISOString().slice(0, 10);
+    var all = st.reports.filter(function (r) { return r.disc <= date; });
+    var pbArr = [], peArr = [], n = 0;
+    all.forEach(function (r, i) {
+      if (r.disc < from) return;
+      var b = barAt(code, r.disc);
+      if (!b) return;
+      n++;
+      var bv = convert(r.bvps, r.cur, st.currency, r.disc);
+      if (bv > 0) pbArr.push(b.close / bv);
+      var cut = new Date(r.disc + 'T00:00:00Z');
+      cut.setUTCFullYear(cut.getUTCFullYear() - 1);
+      var cutStr = cut.toISOString().slice(0, 10), sum = 0, cnt = 0;
+      for (var j = i; j >= 0; j--) {
+        if (all[j].date <= cutStr) break;
+        var q = convert(all[j].epsQ, all[j].cur, st.currency, all[j].disc);
+        if (q !== null && q !== undefined) { sum += q; cnt++; }
+      }
+      if (cnt >= 2 && sum > 0) peArr.push(b.close / sum);
+    });
+    if (n < 6) return null;
+    function rank(arr, v) {
+      if (!arr.length || v === null || v === undefined || !isFinite(v) || v <= 0) return null;
+      var c = 0;
+      for (var k = 0; k < arr.length; k++) if (arr[k] <= v) c++;
+      return c / arr.length;
+    }
+    return {
+      pb: rank(pbArr, curPb), pe: rank(peArr, curPe),
+      pbN: pbArr.length, peN: peArr.length, n: n
     };
   }
 
@@ -306,6 +379,7 @@ SB.market = (function () {
     visibleReports: visibleReports,
     latestReport: latestReport,
     valuation: valuation,
+    valueBand: valueBand,
     toCNY: toCNY,
     toHKD: toHKD,
     convert: convert,

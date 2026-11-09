@@ -223,23 +223,31 @@ def hk_reports(code):
             'date': rd[:10],
             'disc': next_weekday(d + timedelta(days=lag)).isoformat(),
             'est': True,
+            'type': row.get('REPORT_TYPE'),
             'rev': row.get('OPERATE_INCOME'),
             'np': row.get('HOLDER_PROFIT'),
             'eps': row.get('BASIC_EPS'),
             'bvps': row.get('BPS'),
             'cur': row.get('CURRENCY'),
         })
+    # 港股按 REPORT_TYPE 标注的财年差分（如旺旺 3 月年结）
     return finish_reports(items)
 
 
+def fiscal_year(it):
+    """财报所属财年：港股用 REPORT_TYPE 前缀，A 股按报告期年份。"""
+    m = re.match(r'(\d{4})\s*年', it.get('type') or '')
+    return m.group(1) if m else it['date'][:4]
+
+
 def finish_reports(items):
-    """把累计口径转换为单季/单期，并按年份计算差分。"""
+    """把累计口径转换为单季/单期，同一财年内做差分。"""
     items.sort(key=lambda x: x['date'])
     prev = {}
     out = []
     for it in items:
-        y = it['date'][:4]
-        base = prev.get(y)
+        fy = fiscal_year(it)
+        base = prev.get(fy)
         q = {'date': it['date'], 'disc': it['disc'], 'est': it['est']}
         for k in ('rev', 'np', 'eps'):
             v = it.get(k)
@@ -253,7 +261,7 @@ def finish_reports(items):
         q['bvps'] = it.get('bvps')
         q['cur'] = it.get('cur') or 'CNY'
         out.append(q)
-        prev[y] = it
+        prev[fy] = it
     return [x for x in out if x['disc'] <= END.isoformat()]
 
 
