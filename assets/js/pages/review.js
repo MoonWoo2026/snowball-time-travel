@@ -55,6 +55,7 @@
 
     renderCurve(eq, rep);
     renderStyle(rep);
+    renderOps(rep);
     renderMark(m, fees);
     renderHoldings();
     renderDivs();
@@ -125,12 +126,7 @@
 
   function renderCurve(eq, rep) {
     if (!eq.length) return;
-    var evDates = {};
-    rep.events.forEach(function (e) { evDates[e.date] = 1; });
-    var step = Math.max(1, Math.floor(eq.length / 300));
-    var pts = eq.filter(function (x, i) {
-      return i % step === 0 || i === eq.length - 1 || evDates[x.d];
-    });
+    var pts = eq;
     var cats = pts.map(function (x) { return x.d; });
     var idx = {};
     cats.forEach(function (d, i) { idx[d] = i; });
@@ -163,7 +159,7 @@
 
     $('curveTag').textContent = '基准 ' + U.money(E.benchmark()) +
       ' · 超额 ' + U.pct(E.benchmark() ? E.metrics().total / E.benchmark() - 1 : 0) +
-      ' · ' + rep.events.length + ' 个买卖点';
+      ' · 全部 ' + eq.length + ' 个交易日 · ' + rep.events.length + ' 个买卖点';
 
     rvCurve.setOption({
       animation: false,
@@ -172,6 +168,9 @@
         { left: 56, right: 16, top: '73%', height: '15%' }
       ],
       axisPointer: { link: [{ xAxisIndex: 'all' }] },
+      dataZoom: [
+        { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100, zoomOnMouseWheel: true, moveOnMouseMove: true }
+      ],
       tooltip: {
         trigger: 'axis', backgroundColor: '#fff', borderColor: '#E3DED3',
         textStyle: { color: '#1C2126', fontSize: 11 },
@@ -361,6 +360,78 @@
         holdDays + '</b> 天。') +
       (finalCashRatio >= 0.5 ? ' 期末仍有 <b>' + (finalCashRatio * 100).toFixed(0) + '%</b> 现金未部署，资金效率还有提升空间。' : '') +
       '</p>';
+  }
+
+  function valAt(code, date) {
+    var vs = M.valuationSeries(code, date);
+    if (!vs.length) return null;
+    var v = vs[vs.length - 1];
+    return v && (v.pe || v.pb) ? v : null;
+  }
+
+  /* 主要操作复盘：建仓、清仓必列；加减仓超过当时总资产 5% 才算主要 */
+  function renderOps(rep) {
+    var eqMap = {};
+    E.equity().forEach(function (p) { eqMap[p.d] = p.v; });
+    var openAt = {}, invested = {}, roundPnl = {}, majors = [], small = 0;
+
+    rep.events.forEach(function (e) {
+      var pv = eqMap[e.date] || 0;
+      var w = pv > 0 ? e.amount / pv : 0;
+      var major = e.kind === 'open' || e.kind === 'close' || w >= 0.05;
+      if (!major) { small++; return; }
+
+      var note = '';
+      if (e.kind === 'open') {
+        openAt[e.code] = e.date;
+        invested[e.code] = e.amount + e.fee;
+        roundPnl[e.code] = 0;
+        note = '首次建仓，动用当时总资产的 <b>' + (w * 100).toFixed(1) + '%</b>';
+        var v = valAt(e.code, e.date);
+        if (v) {
+          var kv = [];
+          if (v.pe) kv.push('PE <b>' + v.pe.toFixed(1) + '</b> 倍');
+          if (v.pb) kv.push('PB <b>' + v.pb.toFixed(2) + '</b> 倍');
+          if (kv.length) note += '，成交价对应 ' + kv.join('、');
+        }
+      } else if (e.kind === 'add') {
+        invested[e.code] = (invested[e.code] || 0) + e.amount + e.fee;
+        note = '加仓至 <b>' + e.sharesAfter.toLocaleString('en-US') + '</b> 股，累计投入 <b>' + U.money(invested[e.code]) + '</b>';
+      } else if (e.kind === 'cut') {
+        roundPnl[e.code] = (roundPnl[e.code] || 0) + e.realized;
+        note = '减仓，回笼 <b>' + U.money(e.amount) + '</b>，剩余 <b>' + e.sharesAfter.toLocaleString('en-US') + '</b> 股';
+      } else {
+        roundPnl[e.code] = (roundPnl[e.code] || 0) + e.realized;
+        var hold = openAt[e.code] ? days(openAt[e.code], e.date) : null;
+        var basis = invested[e.code] || (e.amount - e.realized);
+        var pct = basis > 0 ? roundPnl[e.code] / basis : 0;
+        note = '清仓离场' + (hold ? '，持有 <b>' + hold + '</b> 天' : '') +
+          '，累计实现 <b class="' + U.cls(roundPnl[e.code]) + '">' + U.money(roundPnl[e.code]) +
+          '</b>（<b class="' + U.cls(pct) + '">' + U.pct(pct) + '</b>）';
+        delete openAt[e.code]; delete invested[e.code]; delete roundPnl[e.code];
+      }
+
+      majors.push({ e: e, w: w, note: note });
+    });
+
+    $('opTag').textContent = majors.length + ' 笔主要操作' +
+      (small ? ' · 另有 ' + small + ' 笔小额调仓未列出' : '');
+    if (!majors.length) {
+      $('opBody').innerHTML = '<div class="empty">期间没有成交记录。</div>';
+      return;
+    }
+    $('opBody').innerHTML = majors.map(function (o) {
+      var e = o.e, buy = e.side === 'buy';
+      return '<div class="op-row">' +
+        '<div class="op-when"><b>' + e.date + '</b><span class="tag' + (buy ? '' : ' sell') + '">' +
+          KIND[e.kind] + '</span></div>' +
+        '<div class="op-main"><span class="t">' + U.esc(e.name) + '</span>' +
+          '<span class="q">' + (buy ? '买入' : '卖出') + ' ' + e.qty.toLocaleString('en-US') +
+          ' 股 @ ' + U.px(e.price, e.cur) + '</span>' +
+          '<div class="op-note">' + o.note + '</div></div>' +
+        '<div class="op-amt">' + U.money(e.amount) + '</div>' +
+      '</div>';
+    }).join('');
   }
 
   function renderMark(m, fees) {

@@ -317,6 +317,20 @@ input,select{font-family:inherit}
 .rv-card h3 span{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;letter-spacing:0}
 #rvCurve{height:430px}
 #rvMark{height:300px}
+.rv-curve-card,.rv-ops-card{margin-bottom:14px}
+.rv-ops{max-height:none}
+.op-row{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:14px;padding:10px 0;border-bottom:1px solid #F6F3EC;align-items:start}
+.op-row:last-child{border-bottom:0}
+.op-when{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.5}
+.op-when b{display:block;color:var(--ink);font-weight:600}
+.op-when .tag{display:inline-block;margin-top:3px;font-size:9.5px;padding:1px 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent);letter-spacing:.3px}
+.op-when .tag.sell{background:#FBEAE8;color:var(--up)}
+.op-main{font-size:12px;color:var(--ink);line-height:1.6}
+.op-main .t{font-weight:600}
+.op-main .q{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:6px}
+.op-note{margin-top:3px;font-size:11px;color:var(--muted);line-height:1.65}
+.op-note b{color:var(--ink);font-weight:600}
+.op-amt{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
 .rv-list{max-height:300px;overflow:auto}
 .rv-list table{width:100%;border-collapse:collapse;font-size:11px}
 .rv-list th{position:sticky;top:0;background:#fff;color:var(--faint);font-weight:600;font-size:9.5px;text-align:left;padding:5px 8px;border-bottom:1px solid var(--rule2);white-space:nowrap}
