@@ -153,7 +153,9 @@ SB.engine = (function () {
     if (!st) return { ok: false, msg: '未知标的' };
     qty = Math.floor(qty || 0);
     if (qty <= 0) return { ok: false, msg: '请输入有效股数' };
-    if (qty % lotOf(code) !== 0) return { ok: false, msg: 'A 股需为 100 股整数倍' };
+    var pos0 = S.pos[code];
+    var fullSell = side === 'sell' && pos0 && qty === pos0.shares;
+    if (qty % lotOf(code) !== 0 && !fullSell) return { ok: false, msg: 'A 股需为 100 股整数倍' };
     if (!M.listed(code, S.date)) return { ok: false, msg: st.name + ' 在 ' + S.date + ' 尚未上市' };
     var r = M.barAt(code, S.date);
     if (!r) return { ok: false, msg: '当日无行情' };

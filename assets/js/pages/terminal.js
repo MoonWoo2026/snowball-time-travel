@@ -647,18 +647,27 @@
     $('buyBtn').addEventListener('click', function () { doTrade('buy'); });
     $('sellBtn').addEventListener('click', function () { doTrade('sell'); });
 
-    document.querySelector('.dock .tb-quick').addEventListener('click', function (e) {
+    /* 委托到 .dock 上绑定，避免标记结构调整导致事件绑不上 */
+    var dock = document.querySelector('.dock');
+    dock.addEventListener('click', function (e) {
       var b = e.target.closest('[data-pct]');
       if (!b) return;
       var v = b.getAttribute('data-pct');
-      var lotN = lot(state.code), px = priceOf(state.code);
+      var px = priceOf(state.code);
       if (!px) return U.toast('该时点无行情');
       if (v === 'all-sell') {
-        $('qty').value = E.shares(state.code) || '';
+        var held = E.shares(state.code) || 0;
+        if (!held) return U.toast('当前没有可卖出的持股');
+        $('qty').value = held;
         return;
       }
-      var max = maxBuyable(state.code, px, S.cash);
-      var qty = v === '1' ? max : Math.floor(max * Number(v) / lotN) * lotN;
+      var cash = E.session().cash;
+      var max = maxBuyable(state.code, px, cash);
+      if (max <= 0) {
+        $('qty').value = '';
+        return U.toast('可用现金不足以买入 1 手');
+      }
+      var qty = v === '1' ? max : Math.floor(max * Number(v) / lot(state.code)) * lot(state.code);
       $('qty').value = Math.max(qty, 0) || '';
     });
   }
@@ -698,7 +707,13 @@
   function doTrade(side) {
     var qty = Math.floor(Number($('qty').value) || 0);
     if (!qty) return U.toast('请输入股数');
-    var r = E.trade(state.code, side, qty);
+    var r;
+    try {
+      r = E.trade(state.code, side, qty);
+    } catch (err) {
+      U.toast('交易失败：' + (err && err.message ? err.message : err));
+      return;
+    }
     U.toast(r.msg);
     if (r.ok) {
       $('qty').value = '';
