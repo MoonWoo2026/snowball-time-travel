@@ -8,9 +8,11 @@
   };
   var LIMIT = { day: 800, week: 400, month: 240, quarter: 120, year: 80 };
   var S = null;
-  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos', growthMetric: 'rev', growthPeriod: 'Q' };
+  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos', growthMetric: 'rev', growthPeriod: 'Q',
+    god: { on: false, kind: 'pb', x: 0.9 } };
   var chart, growth, curve;
   var playTimer = null;
+  var godCache = { pts: [], areas: [] };
 
   function addMonths(dateStr, months) {
     var d = new Date(dateStr + 'T00:00:00Z');
@@ -190,6 +192,8 @@
     });
 
     var show = Math.min(bars.length, 160);
+    godCache = godPoints(code, bars, startPos, all);
+    updateGodTip(godCache);
     var dzStart = bars.length > show ? (1 - show / bars.length) * 100 : 0;
 
     chart.setOption({
@@ -204,10 +208,16 @@
           var b = bars[ps[0].dataIndex];
           if (!b) return '';
           var pc = b.close >= b.open ? C.up : C.down;
+          var gv = null;
+          for (var gi = 0; gi < godCache.pts.length; gi++) {
+            if (godCache.pts[gi].value[0] === ps[0].dataIndex) { gv = godCache.pts[gi].mv; break; }
+          }
           return '<b>' + b.key + '</b><br>' +
             '开 ' + b.open.toFixed(2) + '　高 ' + b.high.toFixed(2) + '<br>' +
             '低 ' + b.low.toFixed(2) + '　收 <span style="color:' + pc + '">' + b.close.toFixed(2) + '</span><br>' +
-            '量 ' + (b.volume / 1e4).toFixed(1) + '万';
+            '量 ' + (b.volume / 1e4).toFixed(1) + '万' +
+            (gv === null ? '' : '<br><span style="color:' + C.gold + '">' +
+              (state.god.kind === 'pb' ? 'PB ' : 'PE ') + gv.toFixed(2) + ' 倍</span>');
         }
       },
       axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -251,8 +261,79 @@
             data: [{ yAxis: 70 }, { yAxis: 30 }]
           }
         }
-      ]
+      ].concat(godSeries())
     }, true);
+  }
+
+  /* 上帝视角：找出历史上估值低于阈值的连续区间，区间内最低点打标，并给区间上淡色底 */
+  function godPoints(code, bars, startPos, all) {
+    var st = M.stock(code);
+    if (!st || !state.god.on) return { pts: [], areas: [] };
+    var vs = M.valuationSeries(code, S.date);
+    if (!vs.length) return { pts: [], areas: [] };
+    var vm = {};
+    vs.forEach(function (o) { vm[o.date] = o; });
+    var k = state.god.kind, x = state.god.x;
+    var pts = [], areas = [], runStart = null, runMin = null, runMinGi = 0;
+
+    function closeRun(endGi) {
+      if (runStart === null) return;
+      areas.push({ a: runStart, b: endGi });
+      pts.push({ value: [runMinGi, bars[runMinGi].low], mv: runMin });
+      runStart = null; runMin = null;
+    }
+
+    for (var gi = 0; gi < bars.length; gi++) {
+      var b = all[startPos + gi];
+      if (!b) continue;
+      var minV = null;
+      for (var dj = b.startIdx; dj <= b.endIdx; dj++) {
+        var o = vm[st.bars[dj][0]];
+        if (!o) continue;
+        var v = o[k];
+        if (v !== null && v !== undefined && v > 0 && (minV === null || v < minV)) minV = v;
+      }
+      if (minV !== null && minV <= x) {
+        if (runStart === null) { runStart = gi; runMin = minV; runMinGi = gi; }
+        else if (minV < runMin) { runMin = minV; runMinGi = gi; }
+      } else {
+        closeRun(gi - 1);
+      }
+    }
+    closeRun(bars.length - 1);
+    return { pts: pts, areas: areas };
+  }
+
+  function godSeries() {
+    if (!godCache.pts.length) return [];
+    return [{
+      name: '上帝视角', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0,
+      data: godCache.pts, symbol: 'circle', symbolSize: 7, z: 6,
+      itemStyle: { color: C.gold, borderColor: '#fff', borderWidth: 1 },
+      label: {
+        show: true, position: 'bottom', fontSize: 8, color: C.gold,
+        formatter: function (p) { return p.data.mv.toFixed(2); }
+      },
+      labelLayout: { hideOverlap: true },
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(176,122,46,.07)' },
+        data: godCache.areas.map(function (a) {
+          return [{ xAxis: a.a }, { xAxis: a.b }];
+        })
+      }
+    }];
+  }
+
+  function updateGodTip(rep) {
+    var el = $('godTip');
+    if (!el) return;
+    if (!state.god.on) {
+      el.textContent = '标出历史上估值低于该值的交易日';
+      return;
+    }
+    el.textContent = (state.god.kind === 'pb' ? 'PB' : 'PE') + ' ≤ ' + state.god.x +
+      ' 倍 · 共 ' + rep.areas.length + ' 段';
   }
 
   function renderValuation() {
@@ -530,6 +611,20 @@
       state.code = this.value;
       $('qty').value = '';
       renderAll();
+    });
+
+    $('godRun').addEventListener('click', function () {
+      var x = Number($('godX').value);
+      if (!(x > 0)) return U.toast('请输入大于 0 的倍数');
+      state.god = { on: true, kind: $('godKind').value, x: x };
+      this.classList.add('on');
+      renderChart();
+    });
+
+    $('godClear').addEventListener('click', function () {
+      state.god.on = false;
+      $('godRun').classList.remove('on');
+      renderChart();
     });
 
     $('tbSlots').addEventListener('click', function () { U.slotsDialog(); });

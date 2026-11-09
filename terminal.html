@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>交易终端 · 滚雪球</title>
-<link rel="stylesheet" href="assets/css/app.css?v=20261113">
+<link rel="stylesheet" href="assets/css/app.css?v=20261114">
 </head>
 <body>
 
@@ -93,6 +93,19 @@
             <span class="chip">RSI 14</span>
           </div>
         </div>
+        <div class="god-bar">
+          <span class="god-ttl">上帝视角</span>
+          <select class="select god-sel" id="godKind" aria-label="估值指标">
+            <option value="pb">市净率 PB</option>
+            <option value="pe">市盈率 PE(TTM)</option>
+          </select>
+          <span class="god-op">≤</span>
+          <input type="number" class="god-x" id="godX" step="0.1" min="0.1" value="0.9" aria-label="估值倍数">
+          <span class="god-op">倍</span>
+          <button type="button" id="godRun">标注</button>
+          <button type="button" id="godClear">清除</button>
+          <span class="god-tip" id="godTip">标出历史上估值低于该值的交易日</span>
+        </div>
         <div id="chart"></div>
       </section>
 
@@ -174,12 +187,12 @@
 
 <div id="toast"></div>
 
-<script src="assets/vendor/echarts.min.js?v=20261113"></script>
-<script src="assets/js/store.js?v=20261113"></script>
-<script src="assets/js/market.js?v=20261113"></script>
-<script src="assets/js/engine.js?v=20261113"></script>
-<script src="assets/js/ui.js?v=20261113"></script>
-<script src="assets/js/cycle.js?v=20261113"></script>
-<script src="assets/js/pages/terminal.js?v=20261113"></script>
+<script src="assets/vendor/echarts.min.js?v=20261114"></script>
+<script src="assets/js/store.js?v=20261114"></script>
+<script src="assets/js/market.js?v=20261114"></script>
+<script src="assets/js/engine.js?v=20261114"></script>
+<script src="assets/js/ui.js?v=20261114"></script>
+<script src="assets/js/cycle.js?v=20261114"></script>
+<script src="assets/js/pages/terminal.js?v=20261114"></script>
 </body>
 </html>

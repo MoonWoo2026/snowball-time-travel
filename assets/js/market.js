@@ -383,6 +383,40 @@ SB.market = (function () {
     };
   }
 
+  /* 逐日估值序列：用「该日之前已披露」的最近一期净资产与 TTM EPS 计算，可安全用于历史标注 */
+  function valuationSeries(code, until) {
+    var st = stocks[code];
+    if (!st || !st.reports) return [];
+    var reps = st.reports.filter(function (r) { return r.disc <= until; })
+      .sort(function (a, b) { return a.disc < b.disc ? -1 : a.disc > b.disc ? 1 : 0; });
+    if (!reps.length) return [];
+    var ttm = reps.map(function (r, i) {
+      var cut = new Date(r.date + 'T00:00:00Z');
+      cut.setUTCFullYear(cut.getUTCFullYear() - 1);
+      var cutStr = cut.toISOString().slice(0, 10), sum = 0, cnt = 0;
+      for (var j = i; j >= 0; j--) {
+        if (reps[j].date <= cutStr) break;
+        var q = convert(reps[j].epsQ, reps[j].cur, st.currency, reps[j].disc);
+        if (q !== null && q !== undefined) { sum += q; cnt++; }
+      }
+      return cnt >= 2 && sum > 0 ? sum : null;
+    });
+    var out = [], ri = -1;
+    st.bars.forEach(function (b) {
+      if (b[0] > until) return;
+      while (ri + 1 < reps.length && reps[ri + 1].disc <= b[0]) ri++;
+      if (ri < 0) return;
+      var r = reps[ri];
+      var bv = convert(r.bvps, r.cur, st.currency, r.disc);
+      out.push({
+        date: b[0],
+        pb: bv > 0 ? b[4] / bv : null,
+        pe: ttm[ri] ? b[4] / ttm[ri] : null
+      });
+    });
+    return out;
+  }
+
   return {
     load: load,
     meta: function () { return meta; },
@@ -390,6 +424,7 @@ SB.market = (function () {
     stock: stock,
     barAt: barAt,
     indexAt: indexAt,
+    valuationSeries: valuationSeries,
     priceAt: priceAt,
     priceOn: priceOn,
     adjustedClose: adjustedClose,

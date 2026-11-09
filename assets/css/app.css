@@ -143,6 +143,15 @@ input,select{font-family:inherit}
 /* ---------- 终端 ---------- */
 .term{max-width:1440px;margin:0 auto;padding:12px 20px 16px;display:flex;flex-direction:column;gap:10px}
 .acct-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) auto;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:10px 16px}
+.god-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 14px;border-top:1px solid var(--rule2);background:#FBFAF7;font-size:11px;color:var(--muted)}
+.god-ttl{font-size:10px;letter-spacing:.5px;color:var(--accent);border:1px solid var(--accent-soft);background:var(--accent-soft);border-radius:4px;padding:2px 7px;font-weight:700}
+.god-sel{height:26px;font-size:11px;padding:0 6px}
+.god-x{width:62px;height:26px;font-family:var(--mono);font-size:11px;text-align:center;border:1px solid var(--rule);border-radius:5px;background:#fff;color:var(--ink)}
+.god-op{color:var(--faint)}
+.god-bar button{height:26px;padding:0 10px;font-size:11px;border:1px solid var(--rule);border-radius:5px;background:#fff;color:var(--muted);cursor:pointer}
+.god-bar button:hover{border-color:var(--accent);color:var(--accent)}
+.god-bar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.god-tip{margin-left:auto;font-size:10px;color:var(--faint)}
 .acct{display:flex;flex-direction:column;gap:1px;min-width:0}
 .acct span{font-size:9.5px;color:var(--faint);letter-spacing:.6px}
 .acct b{font-family:var(--mono);font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
