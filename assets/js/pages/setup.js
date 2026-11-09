@@ -21,7 +21,7 @@
     if (input.value < first) input.value = first;
     if (input.value > last) input.value = last;
 
-    $('capital').value = existing ? Math.round(existing.initCash / 10000) : 180;
+    $('capital').value = existing ? Math.round(existing.initCash / 10000) : 200;
     updateCap();
     watch = existing ? existing.watch.slice() : meta.stocks.filter(function (s) { return s.default; }).map(function (s) { return s.code; });
     $('overwriteTip').textContent = existing ? '开始后将覆盖当前进度（' + existing.date + '），如需保留请先到首页存档' : '开始后时间只会向前走';

@@ -39,8 +39,8 @@ SB.engine = (function () {
     S = {
       v: 1,
       createdAt: new Date().toISOString(),
-      initCash: Math.round((opts.capital || 1800000) / 10000) * 10000,
-      cash: Math.round((opts.capital || 1800000) / 10000) * 10000,
+      initCash: Math.round((opts.capital || 2000000) / 10000) * 10000,
+      cash: Math.round((opts.capital || 2000000) / 10000) * 10000,
       startDate: start,
       date: start,
       watch: (opts.watch && opts.watch.length ? opts.watch.slice() : defaults()),
@@ -48,7 +48,7 @@ SB.engine = (function () {
       pos: {},
       trades: [],
       divs: [],
-      equity: [{ d: start, v: Math.round((opts.capital || 1800000) / 10000) * 10000 }],
+      equity: [{ d: start, v: Math.round((opts.capital || 2000000) / 10000) * 10000 }],
       drip: true
     };
     save();

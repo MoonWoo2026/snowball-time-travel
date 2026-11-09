@@ -25,7 +25,7 @@
       total.className = U.cls(m.ret);
       U.header('home');
     } else {
-      document.getElementById('hpTotal').textContent = '¥180万';
+      document.getElementById('hpTotal').textContent = '¥200万';
       U.header('home');
     }
   }).catch(function (e) {
