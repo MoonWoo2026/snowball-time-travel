@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>复盘报告 · 滚雪球</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+
+<header class="site-head" id="siteHead"></header>
+
+<main class="review">
+  <div class="review-head">
+    <div>
+      <h1>复盘报告</h1>
+      <p id="rvSub">--</p>
+    </div>
+    <div class="rv-actions">
+      <a class="btn" href="terminal.html">继续交易</a>
+      <button class="btn" id="expJson">导出数据</button>
+      <button class="btn" id="expCsv">导出成交</button>
+      <button class="btn ghost" id="printBtn">打印 / PDF</button>
+      <button class="btn ghost" id="restart">重新开始</button>
+    </div>
+  </div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="rv-grid">
+    <div class="rv-card"><h3>资产曲线 vs 等权买入持有 <span id="curveTag"></span></h3><div id="rvCurve"></div></div>
+    <div class="rv-card"><h3>收益拆解 <span>人民币</span></h3><div id="rvMark"></div></div>
+  </div>
+
+  <div class="rv-grid">
+    <div class="rv-card"><h3>期末持仓 <span id="holdTag"></span></h3><div class="rv-list" id="holdBody"></div></div>
+    <div class="rv-card"><h3>累计分红 <span id="divTag"></span></h3><div class="rv-list" id="divBody"></div></div>
+  </div>
+
+  <div class="rv-card" style="margin-bottom:16px">
+    <h3>全部成交 <span id="tradeTag"></span></h3>
+    <div class="rv-list" id="tradeBody"></div>
+  </div>
+
+  <footer class="rv-foot">
+    <span>行情来自公开市场日线；财报按披露日解封，港股披露日为估算值；红利税按 A 股持有期简化计算。</span>
+    <span>本报告仅供投资学习与研究，不构成任何投资建议。</span>
+  </footer>
+</main>
+
+<div id="toast"></div>
+
+<script src="assets/vendor/echarts.min.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/market.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages/review.js"></script>
+</body>
+</html>

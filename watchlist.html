@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自选股 · 滚雪球</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+
+<header class="site-head" id="siteHead"></header>
+
+<main class="wl-page">
+  <div class="wl-head">
+    <div>
+      <h1>自选股</h1>
+      <p>以当前复盘时点报价。点卡片进入交易终端；搜索可把新标的加入自选。</p>
+    </div>
+    <div class="wl-search">
+      <input type="text" id="addSearch" placeholder="搜索代码 / 名称，加入自选" autocomplete="off">
+      <div class="pick-results hide" id="addResults"></div>
+    </div>
+  </div>
+  <div class="wl-meta">
+    <span id="wlCount">--</span>
+    <span id="wlNote">--</span>
+  </div>
+  <div class="wl-grid" id="wlGrid"></div>
+</main>
+
+<div id="toast"></div>
+
+<script src="assets/js/store.js"></script>
+<script src="assets/js/market.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages/watchlist.js"></script>
+</body>
+</html>

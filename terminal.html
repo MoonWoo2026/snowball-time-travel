@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交易终端 · 滚雪球</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+
+<header class="site-head" id="siteHead"></header>
+
+<main class="term">
+  <section class="acct-strip">
+    <div class="acct"><span>总资产</span><b class="accent" id="aTotal">--</b></div>
+    <div class="acct"><span>可用现金</span><b id="aCash">--</b></div>
+    <div class="acct"><span>持仓市值</span><b id="aMv">--</b></div>
+    <div class="acct"><span>累计收益</span><b id="aRet">--</b></div>
+    <div class="acct"><span>年化收益</span><b id="aCagr">--</b></div>
+    <div class="acct"><span>累计分红</span><b id="aDiv">--</b></div>
+  </section>
+
+  <section class="timebar">
+    <div class="tb-date"><span>当前时点</span><b id="tbDate">--</b></div>
+    <div class="tb-slider">
+      <span class="end" id="tbStart">--</span>
+      <input type="range" id="tbRange" min="0" max="1" value="0" step="1">
+      <span class="end" id="tbEnd">--</span>
+    </div>
+    <div class="tb-quick">
+      <button data-step="1m">+1月</button>
+      <button data-step="3m">+3月</button>
+      <button data-step="6m">+6月</button>
+      <button data-step="1y">+1年</button>
+      <button data-step="3y">+3年</button>
+      <button data-step="today" class="gold">推到现在</button>
+      <input type="date" id="tbJump" aria-label="跳转到日期">
+      <button id="tbGo">推进</button>
+    </div>
+  </section>
+
+  <div class="term-grid">
+    <div class="term-left">
+      <section class="chart-card">
+        <div class="chart-head">
+          <div>
+            <h1 id="cTitle">--</h1>
+            <p id="cSub">--</p>
+          </div>
+          <div class="chart-tools">
+            <select class="select" id="stockSel" aria-label="切换标的"></select>
+            <div class="seg" id="pSeg">
+              <button data-p="day" class="on">日</button>
+              <button data-p="week">周</button>
+              <button data-p="month">月</button>
+              <button data-p="quarter">季</button>
+              <button data-p="year">年</button>
+            </div>
+            <div class="seg" id="mSeg">
+              <button data-m="qfq" class="on">前复权</button>
+              <button data-m="raw">不复权</button>
+            </div>
+            <span class="chip" id="chipBars">--</span>
+            <span class="chip"><i class="legend-dot b"></i>B 买入</span>
+            <span class="chip"><i class="legend-dot s"></i>S 卖出</span>
+            <span class="chip">BOLL(20,2)</span>
+            <span class="chip">RSI 14</span>
+          </div>
+        </div>
+        <div id="chart"></div>
+      </section>
+
+      <section class="ledger">
+        <div class="ledger-head">
+          <div class="tabs" id="ledgerTabs">
+            <button data-tab="pos" class="on">持仓</button>
+            <button data-tab="trade">成交</button>
+            <button data-tab="div">分红</button>
+          </div>
+          <div class="ledger-meta" id="ledgerMeta">--</div>
+        </div>
+        <div class="ledger-body" id="ledgerBody"></div>
+      </section>
+    </div>
+
+    <aside class="panel">
+      <div class="panel-head"><span>POINT-IN-TIME 估值</span><em id="snapTag">--</em></div>
+      <div class="v-grid">
+        <div class="v-card"><div class="k">市净率 PB</div><div class="n" id="vPb">--</div><div class="s" id="vPbS">最新已披露净资产</div></div>
+        <div class="v-card"><div class="k">静态 PE</div><div class="n" id="vPe">--</div><div class="s" id="vPeS">上一年度年报</div></div>
+        <div class="v-card"><div class="k">TTM PE</div><div class="n" id="vTtm">--</div><div class="s">近四个单期归母</div></div>
+        <div class="v-card"><div class="k">推算股息率</div><div class="n" id="vDiv">--</div><div class="s">过去 12 个月派息</div></div>
+      </div>
+
+      <div class="panel-head"><span>单季营收 / 归母</span><em id="growthTag">亿元</em></div>
+      <div id="growth"></div>
+
+      <div class="panel-head"><span>已披露财报</span><em id="reportTag">--</em></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>报告期</th><th class="n">营收</th><th class="n">归母</th><th class="n">EPS</th></tr></thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+
+      <div class="panel-head"><span>账户资产曲线</span><em id="curveTag">--</em></div>
+      <div id="curve"></div>
+    </aside>
+  </div>
+</main>
+
+<footer class="dock">
+  <div class="target">当前标的 <b id="dTarget">--</b> <span class="mono" id="dPrice">--</span></div>
+  <input type="number" id="qty" min="1" step="100" placeholder="股数" aria-label="交易股数">
+  <div class="tb-quick">
+    <button data-pct="0.25">25%</button>
+    <button data-pct="0.5">50%</button>
+    <button data-pct="1">全仓</button>
+    <button data-pct="all-sell">全部卖出</button>
+  </div>
+  <button class="act buy" id="buyBtn">买入</button>
+  <button class="act sell" id="sellBtn">卖出</button>
+  <label class="drip"><input type="checkbox" id="drip" checked> 红利复投</label>
+  <span class="cash-tip" id="cashTip">--</span>
+  <a href="review.html">复盘报告 →</a>
+</footer>
+
+<div id="toast"></div>
+
+<script src="assets/vendor/echarts.min.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/market.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages/terminal.js"></script>
+</body>
+</html>

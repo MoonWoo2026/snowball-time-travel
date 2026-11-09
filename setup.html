@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新建复盘 · 滚雪球</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+
+<header class="site-head" id="siteHead"></header>
+
+<main class="setup">
+  <h1>新建一次历史复盘</h1>
+  <p>选择起点与本金，设定自选股。开始后时间只会向前走，界面也只会显示当时已经公开的信息。</p>
+
+  <section class="form-card">
+    <h2><span class="no">01</span> 时点与本金</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="startDate">起点 T₀</label>
+        <input type="date" id="startDate">
+        <span class="sub">可选 2010 年至今的任意日期，非交易日自动顺延</span>
+      </div>
+      <div class="field">
+        <label for="capital">初始本金（万元）</label>
+        <input type="number" id="capital" min="1" step="10" value="180">
+        <span class="sub">折合 <b id="capCny">¥1,800,000</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-card">
+    <h2><span class="no">02</span> 自选股</h2>
+    <div class="pick-search">
+      <input type="text" id="pickSearch" placeholder="搜索代码 / 名称，加入自选" autocomplete="off">
+      <div class="pick-results hide" id="pickResults"></div>
+    </div>
+    <div class="chips" id="pickChips"></div>
+  </section>
+
+  <div class="setup-actions">
+    <span class="tip" id="overwriteTip">开始后将覆盖当前进度</span>
+    <button class="btn solid" id="go">进入交易终端</button>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script src="assets/js/store.js"></script>
+<script src="assets/js/market.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages/setup.js"></script>
+</body>
+</html>
