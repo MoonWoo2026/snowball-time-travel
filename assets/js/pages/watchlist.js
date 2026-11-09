@@ -3,8 +3,18 @@
   'use strict';
   var U = SB.ui, M = SB.market, E = SB.engine;
   var S = null;
+  var playTimer = null;
 
   function $(id) { return document.getElementById(id); }
+
+  function addMonths(dateStr, months) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    var day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + months);
+    d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
+    return d.toISOString().slice(0, 10);
+  }
 
   SB.market.load().then(function () {
     E.init();
@@ -25,6 +35,7 @@
   function render() {
     var grid = $('wlGrid');
     $('wlCount').textContent = S.watch.length + ' 只自选 · 时点 ' + S.date;
+    $('wlDate').textContent = S.date;
     var m = E.metrics();
     $('wlNote').textContent = '总资产 ' + U.money(m.total) + ' · 可用现金 ' + U.money(m.cash);
 
@@ -130,6 +141,34 @@
   }
 
   function bind() {
+    $('wlNext').addEventListener('click', function () { jumpTo(addMonths(S.date, 1)); });
+    $('wlWaitGo').addEventListener('click', function () {
+      var y = Math.max(0, Number($('wlWaitY').value) || 0);
+      var mn = Math.max(0, Number($('wlWaitM').value) || 0);
+      if (!y && !mn) return U.toast('请输入等待时长（年 / 月）');
+      jumpTo(addMonths(S.date, y * 12 + mn));
+    });
+    $('wlPlay').addEventListener('click', function () {
+      if (playTimer) { stopPlay(); return; }
+      this.textContent = '⏸ 暂停';
+      this.classList.add('on');
+      playTimer = setInterval(function () {
+        var cal = E.calendar();
+        if (S.date >= cal[cal.length - 1]) { stopPlay(); U.toast('已滚动到最后一个交易日'); return; }
+        jumpTo(addMonths(S.date, 1), true);
+      }, 650);
+    });
+
+    document.querySelector('.wl-timebar').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-step]');
+      if (!b) return;
+      var step = b.getAttribute('data-step');
+      var cal = E.calendar();
+      if (step === 'today') return jumpTo(cal[cal.length - 1]);
+      var n = step === '3m' ? 3 : step === '6m' ? 6 : step === '1y' ? 12 : 36;
+      jumpTo(addMonths(S.date, n));
+    });
+
     $('addSearch').addEventListener('input', function () { showResults(this.value.trim()); });
     $('addSearch').addEventListener('focus', function () { showResults(this.value.trim()); });
     $('addResults').addEventListener('mousedown', function (e) {
@@ -170,5 +209,29 @@
       var card2 = e.target.closest('.wcard');
       if (card2) location.href = 'terminal.html?code=' + card2.getAttribute('data-code');
     });
+  }
+
+  function stopPlay() {
+    clearInterval(playTimer);
+    playTimer = null;
+    var btn = $('wlPlay');
+    btn.textContent = '▶ 连续滚动';
+    btn.classList.remove('on');
+  }
+
+  /* 与终端共用同一份会话：推进后两端时点一致 */
+  function jumpTo(date, quiet) {
+    var cal = E.calendar();
+    if (date <= S.date) {
+      if (!quiet) U.toast('时间只能向前推进');
+      return;
+    }
+    var before = S.divs.length;
+    E.advanceTo(date);
+    S = E.session();
+    var gained = S.divs.length - before;
+    if (!quiet) U.toast('推进至 ' + S.date + (gained ? ' · 结算 ' + gained + ' 笔分红' : ''));
+    render();
+    U.refreshHead();
   }
 })();

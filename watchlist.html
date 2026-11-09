@@ -21,6 +21,23 @@
       <div class="pick-results hide" id="addResults"></div>
     </div>
   </div>
+  <section class="timebar wl-timebar">
+    <div class="tb-date"><span>当前时点</span><b id="wlDate">--</b></div>
+    <div class="tb-quick">
+      <button id="wlNext">下一月</button>
+      <button data-step="3m">+3月</button>
+      <button data-step="6m">+6月</button>
+      <button data-step="1y">+1年</button>
+      <button data-step="3y">+3年</button>
+      <button data-step="today" class="gold">推到现在</button>
+      <span class="tb-wait">
+        <input type="number" id="wlWaitY" min="0" max="40" value="0" aria-label="年"> 年
+        <input type="number" id="wlWaitM" min="0" max="11" value="3" aria-label="月"> 月
+        <button id="wlWaitGo">等待</button>
+      </span>
+      <button id="wlPlay" class="play">▶ 连续滚动</button>
+    </div>
+  </section>
   <div class="wl-meta">
     <span id="wlCount">--</span>
     <span id="wlNote">--</span>
