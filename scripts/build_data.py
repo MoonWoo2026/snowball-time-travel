@@ -40,6 +40,7 @@ STOCKS = [
     dict(code='002001', name='新和成', market='A', sector='化工', secid='0.002001', cur='CNY', default=True),
     dict(code='601336', name='新华保险', market='A', sector='保险', secid='1.601336', cur='CNY', default=True),
     dict(code='600999', name='招商证券', market='A', sector='证券', secid='1.600999', cur='CNY', default=True),
+    dict(code='600030', name='中信证券', market='A', sector='证券', secid='1.600030', cur='CNY', default=False),
     # 可加入自选
     dict(code='03690', name='美团', market='HK', sector='本地生活', secid='116.03690', cur='HKD', default=False),
     dict(code='01810', name='小米集团', market='HK', sector='消费电子', secid='116.01810', cur='HKD', default=False),

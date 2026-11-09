@@ -6,11 +6,11 @@ SB.market = (function () {
   var fxCache = {};
 
   function loadOne(code) {
-    return fetch('data/' + code + '.json').then(function (r) { return r.json(); });
+    return fetch('data/' + code + '.json', { cache: 'no-cache' }).then(function (r) { return r.json(); });
   }
 
   function load() {
-    return fetch('data/meta.json').then(function (r) { return r.json(); }).then(function (m) {
+    return fetch('data/meta.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (m) {
       meta = m;
       var tasks = m.stocks.map(function (s) { return loadOne(s.code); });
       return Promise.all(tasks);
