@@ -114,10 +114,14 @@
   <div class="target">当前标的 <b id="dTarget">--</b> <span class="mono" id="dPrice">--</span></div>
   <input type="number" id="qty" min="1" step="100" placeholder="股数" aria-label="交易股数">
   <div class="tb-quick">
-    <button data-pct="0.25">25%</button>
-    <button data-pct="0.5">50%</button>
-    <button data-pct="1">全仓</button>
-    <button data-pct="all-sell">全部卖出</button>
+    <button data-pct="0.05" title="用可用现金的 5% 买入">5%</button>
+    <button data-pct="0.1" title="用可用现金的 10% 买入">10%</button>
+    <button data-pct="0.2" title="用可用现金的 20% 买入">20%</button>
+    <button data-pct="0.25" title="用可用现金的 25% 买入">25%</button>
+    <button data-pct="0.3" title="用可用现金的 30% 买入">30%</button>
+    <button data-pct="0.5" title="用可用现金的 50% 买入">50%</button>
+    <button data-pct="1" title="用全部可用现金买入">全仓</button>
+    <button data-pct="all-sell" title="卖出现有全部持股">全部卖出</button>
   </div>
   <button class="act buy" id="buyBtn">买入</button>
   <button class="act sell" id="sellBtn">卖出</button>

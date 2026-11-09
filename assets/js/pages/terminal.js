@@ -335,7 +335,7 @@
       rows.sort(function (a, b) { return value(a) - value(b); });
       $('ledgerMeta').textContent = rows.length + ' 只持仓';
       if (!rows.length) {
-        body.innerHTML = '<div class="empty">还没有持仓。在下方输入股数，或点 25% / 50% / 全仓 建仓。</div>';
+        body.innerHTML = '<div class="empty">还没有持仓。在下方输入股数，或点 5% / 10% / 20% / 25% / 30% / 50% / 全仓 建仓。</div>';
         return;
       }
       body.innerHTML = '<table><thead><tr><th>标的</th><th class="n">股数</th><th class="n">成本(¥)</th><th class="n">现价</th><th class="n">市值(¥)</th><th class="n">盈亏</th><th></th></tr></thead><tbody>' +
