@@ -21,7 +21,7 @@
       S._presetStrats.slice(0, 4).forEach(function (ps, i) {
         try {
           var r = SB.strategy.run(ps.plan);
-          STRATS.push({ plan: ps.plan, result: r, equity: stratEquity(ps.plan), color: ps.color || CURVE_COLORS[i] });
+          STRATS.push({ plan: ps.plan, result: r, equity: stratEquity(ps.plan, r), color: ps.color || CURVE_COLORS[i] });
         } catch (e) { /* 某条策略跑失败不阻塞 */ }
       });
     }
@@ -94,9 +94,9 @@
     return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000));
   }
 
-  function stratEquity(plan) {
+  function stratEquity(plan, pre) {
     // 把 strategy 的 equity 对齐到用户曲线的交易日列表
-    var r = SB.strategy.run(plan);
+    var r = pre || SB.strategy.run(plan);
     var idx = {};
     r.equity.forEach(function (p, i) { idx[p.d] = i; });
     var out = [];
@@ -596,7 +596,7 @@
   function openStratDialog() {
     if (STRATS.length >= 4) { U.toast('最多叠加 4 条策略'); return; }
     var mask = document.createElement('div');
-    mask.className = 'mask';
+    mask.className = 'mask on';
     mask.innerHTML =
       '<div class="modal strat-modal">' +
         '<h4>添加自动策略</h4>' +

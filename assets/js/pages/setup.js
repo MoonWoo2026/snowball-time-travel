@@ -40,12 +40,16 @@
     renderChips();
 
     // 恢复已存的预设（切换模式或重进 setup 页不丢失）
-    var saved = E.session() && E.session()._presetStrats;
+    var sess = E.session();
+    var saved = sess && sess._presetStrats;
+    var savedMode = 'manual';
     if (saved && saved.length) {
-      PRESETS = saved.slice(0, 4);
-      var savedMode = E.session()._mode;
-      if (savedMode) setMode(savedMode);
+      PRESETS = saved.slice(0, 4).map(function (p, i) {
+        return { plan: p.plan, enabled: true, color: p.color || CURVE_COLORS[i % CURVE_COLORS.length] };
+      });
+      savedMode = sess._mode || 'both';
     }
+    setMode(savedMode);
 
     bind();
   }).catch(function (e) {
@@ -196,13 +200,14 @@
 
   function openPresetDialog(idx) {
     if (watch.length < 1) return U.toast('请先选至少一只自选股');
-    if (!M.stock('600036')) return U.toast('数据尚未加载，请稍等');
+    if (!M.meta().stocks.length) return U.toast('数据尚未加载，请稍等');
     var editing = idx != null;
+    if (!editing && PRESETS.length >= 4) return U.toast('最多 4 条策略');
     var plan = editing ? JSON.parse(JSON.stringify(PRESETS[idx].plan)) : newPlan();
 
     // 简易弹窗：单条策略配置（内嵌在 setup 页里，比 review 弹窗稍简化）
     var mask = document.createElement('div');
-    mask.className = 'mask';
+    mask.className = 'mask on';
     mask.innerHTML =
       '<div class="modal strat-modal">' +
         '<h4>' + (editing ? '编辑策略' : '添加自动策略') + '</h4>' +
@@ -302,11 +307,13 @@
         PRESETS[idx].plan = plan;
       } else {
         if (PRESETS.length >= 4) { U.toast('最多 4 条'); mask.remove(); return; }
-        // 自动填好名（第一次）
-        if (PRESETS.length === 0 && !mask.querySelector('#ptName').value) {
-          plan.name = t === 'dca' ? (plan.dcaPeriod === 'week' ? '每周定投 ¥' : plan.dcaPeriod === 'month' ? '每月定投 ¥' : '每季度定投 ¥') + plan.dcaAmount.toLocaleString() : '估值触发';
+        // 没填名字就按参数自动生成，方便多条策略区分
+        if (!mask.querySelector('#ptName').value.trim()) {
+          plan.name = t === 'dca'
+            ? (plan.dcaPeriod === 'week' ? '每周定投 ¥' : plan.dcaPeriod === 'month' ? '每月定投 ¥' : '每季度定投 ¥') + plan.dcaAmount.toLocaleString()
+            : (plan.valMetric === 'pb' ? 'PB' : 'PE') + ' ≤ ' + plan.valBuy + ' 估值买入';
         }
-        PRESETS.push({ plan: plan, enabled: true, color: CURVE_COLORS[PRESETS.length] });
+        PRESETS.push({ plan: plan, enabled: true, color: CURVE_COLORS[PRESETS.length % CURVE_COLORS.length] });
       }
       renderPresetList();
       mask.remove();
