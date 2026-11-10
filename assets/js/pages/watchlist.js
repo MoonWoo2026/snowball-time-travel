@@ -40,10 +40,10 @@
     $('wlNote').textContent = '总资产 ' + U.money(m.total) + ' · 可用现金 ' + U.money(m.cash);
 
     if (!S.watch.length) {
-      grid.innerHTML = '<div class="empty" style="grid-column:1/-1">自选股为空，搜索加入一只标的。</div>';
+      grid.innerHTML = spxCard() + '<div class="empty" style="grid-column:1/-1">自选股为空，搜索加入一只标的。</div>';
       return;
     }
-    grid.innerHTML = S.watch.map(function (code) {
+    grid.innerHTML = spxCard() + S.watch.map(function (code) {
       var st = M.stock(code);
       if (!st) return '';
       var r = M.barAt(code, S.date);
@@ -114,6 +114,56 @@
     if (g.rev !== null && g.rev !== undefined) bits.push('营收 ' + U.pct(g.rev, 1));
     if (g.np !== null && g.np !== undefined) bits.push('归母 ' + U.pct(g.np, 1));
     return bits.length ? '最新期 ' + bits.join(' · ') : '';
+  }
+
+  function shiftDays(dateStr, n) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function fmtIdx(v) {
+    return v === null || v === undefined ? '--'
+      : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /* 标普500：跨市场基准卡片，只做对比，不参与交易 */
+  function spxCard() {
+    var at = M.spxAt(S.date);
+    if (!at) return '';
+    var ya = M.spxAt(shiftDays(S.date, -365));
+    var since = M.spxAt(S.startDate);
+    var y1 = ya && ya.close ? at.close / ya.close - 1 : null;
+    var all = since && since.close ? at.close / since.close - 1 : null;
+
+    var ser = M.spxSeries(S.date).slice(-90);
+    var spark = '';
+    if (ser.length > 1) {
+      var vs = ser.map(function (x) { return x[1]; });
+      var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), span = mx - mn || 1;
+      var w = 236, h = 44;
+      var pts = ser.map(function (x, i) {
+        var px = i / (ser.length - 1) * w;
+        var py = h - 2 - (x[1] - mn) / span * (h - 4);
+        return px.toFixed(1) + ',' + py.toFixed(1);
+      }).join(' ');
+      spark = '<svg class="idx-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+        '<polyline points="' + pts + '"/></svg>';
+    }
+
+    return '<div class="wcard idx-card">' +
+      '<div class="wc-top"><b>标普500</b><span>SPX · 美股指数</span>' +
+      '<em class="wc-chg ' + U.cls(at.chg) + '">' + U.pct(at.chg) + '</em></div>' +
+      '<div class="wc-price">' + fmtIdx(at.close) + '<small>点 · ' + at.date + '</small></div>' +
+      spark +
+      '<div class="idx-stats">' +
+      '<span>近 1 年<b class="' + U.cls(y1) + '">' + U.pct(y1) + '</b></span>' +
+      '<span>复盘以来<b class="' + U.cls(all) + '">' + U.pct(all) + '</b></span>' +
+      '<span>近90交易日<b class="' + U.cls(ser.length > 1 ? ser[ser.length - 1][1] / ser[0][1] - 1 : null) + '">' +
+      U.pct(ser.length > 1 ? ser[ser.length - 1][1] / ser[0][1] - 1 : null) + '</b></span>' +
+      '</div>' +
+      '<div class="idx-note">市场基准 · 仅作对比，不可交易</div>' +
+      '</div>';
   }
 
   function addPool(kw) {
@@ -207,7 +257,8 @@
         return;
       }
       var card2 = e.target.closest('.wcard');
-      if (card2) location.href = 'terminal.html?code=' + card2.getAttribute('data-code');
+      var code2 = card2 && card2.getAttribute('data-code');
+      if (code2) location.href = 'terminal.html?code=' + code2;
     });
   }
 

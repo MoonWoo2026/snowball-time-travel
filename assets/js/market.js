@@ -5,6 +5,7 @@ SB.market = (function () {
   var stocks = {};
   var fxCache = {};
   var idxBars = [];
+  var spxBars = [];
 
   /* 单文件拉取：失败自动重试，兼容移动端偶发断流；非 2xx 直接报错 */
   function getJSON(url, tries) {
@@ -25,8 +26,11 @@ SB.market = (function () {
 
   function loadIndex() {
     return getJSON('data/index.json', 1)
-      .then(function (j) { idxBars = j.SH000001 || []; })
-      .catch(function () { idxBars = []; });
+      .then(function (j) {
+        idxBars = j.SH000001 || [];
+        spxBars = j.SPX || [];
+      })
+      .catch(function () { idxBars = []; spxBars = []; });
   }
 
   /* 限制并发 5 个，避免移动端一次打 15 个请求导致部分超时 */
@@ -62,30 +66,35 @@ SB.market = (function () {
     });
   }
 
-  /* 上证指数序列：只到 end 为止，用于主图叠加对比 */
-  function indexSeries(end) {
-    if (!idxBars.length) return [];
+  /* 指数序列：只到 end 为止，用于主图叠加与基准对比 */
+  function seriesUntil(bars, end) {
+    if (!bars.length) return [];
     var out = [];
-    for (var i = 0; i < idxBars.length; i++) {
-      if (end && idxBars[i][0] > end) break;
-      out.push([idxBars[i][0], idxBars[i][1]]);
+    for (var i = 0; i < bars.length; i++) {
+      if (end && bars[i][0] > end) break;
+      out.push([bars[i][0], bars[i][1]]);
     }
     return out;
   }
 
-  /* 上证指数：不晚于 date 的收盘与涨跌幅（严格当日可见） */
-  function indexAt(date) {
-    if (!idxBars.length) return null;
-    var lo = 0, hi = idxBars.length - 1, ans = -1;
+  /* 指数时点：不晚于 date 的收盘与涨跌幅（严格当日可见） */
+  function atDate(bars, date) {
+    if (!bars.length) return null;
+    var lo = 0, hi = bars.length - 1, ans = -1;
     while (lo <= hi) {
       var mid = (lo + hi) >> 1;
-      if (idxBars[mid][0] <= date) { ans = mid; lo = mid + 1; } else { hi = mid - 1; }
+      if (bars[mid][0] <= date) { ans = mid; lo = mid + 1; } else { hi = mid - 1; }
     }
     if (ans < 0) return null;
-    var close = idxBars[ans][1];
-    var prev = ans > 0 ? idxBars[ans - 1][1] : close;
-    return { date: idxBars[ans][0], close: close, chg: prev ? close / prev - 1 : 0 };
+    var close = bars[ans][1];
+    var prev = ans > 0 ? bars[ans - 1][1] : close;
+    return { date: bars[ans][0], close: close, chg: prev ? close / prev - 1 : 0 };
   }
+
+  function indexSeries(end) { return seriesUntil(idxBars, end); }
+  function indexAt(date) { return atDate(idxBars, date); }
+  function spxSeries(end) { return seriesUntil(spxBars, end); }
+  function spxAt(date) { return atDate(spxBars, date); }
 
   function prepare(st) {
     st.dateIdx = {};
@@ -540,6 +549,8 @@ SB.market = (function () {
     barAt: barAt,
     indexAt: indexAt,
     indexSeries: indexSeries,
+    spxAt: spxAt,
+    spxSeries: spxSeries,
     valuationSeries: valuationSeries,
     priceAt: priceAt,
     priceOn: priceOn,

@@ -353,6 +353,13 @@ input,select{font-family:inherit}
 .wc-act button.rm{margin-left:auto;color:var(--faint);border-color:transparent;background:transparent}
 .wc-act button.rm:hover{color:var(--up)}
 .wc-act .lot{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+.idx-card{background:linear-gradient(180deg,#FBFAF6,#fff 62%);border-style:dashed;border-color:#DCD5C6}
+.idx-spark{display:block;width:100%;height:44px;margin:0 0 8px}
+.idx-spark polyline{fill:none;stroke:var(--accent);stroke-width:1.3;stroke-linejoin:round;opacity:.42}
+.idx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px dashed var(--rule2);padding-top:8px}
+.idx-stats span{font-size:9px;color:var(--faint);white-space:nowrap}
+.idx-stats b{display:block;font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);letter-spacing:-.2px}
+.idx-note{margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--faint)}
 
 /* ---------- 复盘页 ---------- */
 .review{max-width:1180px;margin:0 auto;padding:30px 24px 70px}

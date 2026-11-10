@@ -340,9 +340,15 @@ def main():
     meta['calendar'] = sorted(all_dates)
 
     idx = klines('1.000001', 'SH000001')
+    # 标普 500 用作跨市场基准；剔除行情源混入的 1 月 1 日假交易日
+    spx = [b for b in klines('100.SPX', 'SPX') if not b[0].endswith('-01-01')]
     (DATA / 'index.json').write_text(
-        json.dumps({'SH000001': [[b[0], b[4]] for b in idx]}, separators=(',', ':')), encoding='utf-8')
+        json.dumps({'SH000001': [[b[0], b[4]] for b in idx],
+                    'SPX': [[b[0], b[4]] for b in spx]}, separators=(',', ':')),
+        encoding='utf-8')
     print('上证指数 %d 根，%s ~ %s' % (len(idx), idx[0][0], idx[-1][0]))
+    if spx:
+        print('标普500 %d 根，%s ~ %s' % (len(spx), spx[0][0], spx[-1][0]))
 
     (DATA / 'meta.json').write_text(
         json.dumps(meta, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
