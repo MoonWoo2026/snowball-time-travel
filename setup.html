@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>新建复盘 · 时光雪球</title>
-<link rel="stylesheet" href="assets/css/app.css?v=20261121">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261121">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261121">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261121">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261121">
-<link rel="manifest" href="manifest.json?v=20261121">
+<link rel="stylesheet" href="assets/css/app.css?v=20261122">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261122">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261122">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261122">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261122">
+<link rel="manifest" href="manifest.json?v=20261122">
 <meta name="theme-color" content="#1E3A5F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,6 +48,36 @@
     <div class="chips" id="pickChips"></div>
   </section>
 
+  <section class="form-card">
+    <h2><span class="no">03</span> 运行模式 <span class="sub inline">手动交易、自动策略，或者两者并行对比</span></h2>
+    <div class="mode-row">
+      <label class="mode-item on" data-mode="manual">
+        <input type="radio" name="mode" value="manual" checked>
+        <b>手动交易</b>
+        <span>自己进终端，一笔笔买卖操作</span>
+      </label>
+      <label class="mode-item" data-mode="both">
+        <input type="radio" name="mode" value="both">
+        <b>手动 + 自动对比</b>
+        <span>你的手动账户 + 自动策略独立账户，review 页并排对比</span>
+      </label>
+      <label class="mode-item" data-mode="auto">
+        <input type="radio" name="mode" value="auto">
+        <b>只跑自动策略</b>
+        <span>不进终端，选好策略参数直接跑完出报告</span>
+      </label>
+    </div>
+
+    <div class="preset-box" id="presetBox" style="display:none">
+      <div class="preset-head">
+        <span>预设自动策略（最多 4 条，独立账户公平对比）</span>
+        <button class="btn ghost sm" type="button" id="addPreset">+ 添加策略</button>
+      </div>
+      <div class="preset-list" id="presetList"></div>
+      <p class="preset-note">每条策略都用独立本金跑同样的历史数据，review 页自动叠加曲线和收益，和你的手动操作公平对比。</p>
+    </div>
+  </section>
+
   <div class="setup-actions">
     <span class="tip" id="overwriteTip">开始后将覆盖当前进度</span>
     <button class="btn solid" id="go">进入交易终端</button>
@@ -56,11 +86,11 @@
 
 <div id="toast"></div>
 
-<script src="assets/js/store.js?v=20261121"></script>
-<script src="assets/js/market.js?v=20261121"></script>
-<script src="assets/js/glossary.js?v=20261121"></script>
-<script src="assets/js/engine.js?v=20261121"></script>
-<script src="assets/js/ui.js?v=20261121"></script>
-<script src="assets/js/pages/setup.js?v=20261121"></script>
+<script src="assets/js/store.js?v=20261122"></script>
+<script src="assets/js/market.js?v=20261122"></script>
+<script src="assets/js/glossary.js?v=20261122"></script>
+<script src="assets/js/engine.js?v=20261122"></script>
+<script src="assets/js/ui.js?v=20261122"></script>
+<script src="assets/js/pages/setup.js?v=20261122"></script>
 </body>
 </html>

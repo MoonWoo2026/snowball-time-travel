@@ -15,11 +15,23 @@
       U.requireSession();
       return;
     }
+
+    // 自动加载 setup 页预设的策略（独立跑，公平对比）
+    if (S._presetStrats && S._presetStrats.length && window.SB.strategy) {
+      S._presetStrats.slice(0, 4).forEach(function (ps, i) {
+        try {
+          var r = SB.strategy.run(ps.plan);
+          STRATS.push({ plan: ps.plan, result: r, equity: stratEquity(ps.plan), color: ps.color || CURVE_COLORS[i] });
+        } catch (e) { /* 某条策略跑失败不阻塞 */ }
+      });
+    }
+
     $('rvSub').textContent = S.startDate + ' → ' + S.date + ' · 初始本金 ' + U.money(S.initCash) +
       ' · ' + E.metrics().days + ' 天';
     rvCurve = echarts.init($('rvCurve'));
     rvMark = echarts.init($('rvMark'));
     render();
+    renderStratList(); // 预设策略 chip 也显示
     window.addEventListener('resize', function () { rvCurve.resize(); rvMark.resize(); });
   }).catch(function (e) {
     U.toast('数据加载失败：' + e.message);

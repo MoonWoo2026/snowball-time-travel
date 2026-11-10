@@ -140,6 +140,34 @@ input,select{font-family:inherit}
 .pick-chip button:hover{color:var(--up)}
 .setup-actions{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:20px}
 .setup-actions .tip{font-size:11px;color:var(--faint)}
+.form-card .sub.inline{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:6px}
+
+/* step 03 运行模式 */
+.mode-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mode-item{border:1.5px solid var(--rule);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:3px}
+.mode-item b{font-size:12.5px;color:var(--accent);font-weight:700}
+.mode-item span{font-size:10.5px;color:var(--muted);line-height:1.5}
+.mode-item input{display:none}
+.mode-item.on{border-color:var(--accent);background:rgba(30,58,95,.05)}
+
+.preset-box{margin-top:16px;border:1px dashed var(--rule);border-radius:8px;padding:12px 14px;background:#FBFAF7}
+.preset-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;color:var(--muted);font-weight:600}
+.preset-note{font-size:10.5px;color:var(--faint);margin:10px 0 0;line-height:1.6}
+.preset-list{display:flex;flex-direction:column;gap:8px}
+
+.preset-row{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;background:#fff;display:flex;align-items:center;gap:10px}
+.preset-row .pr-toggle{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+.preset-row .pr-color{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.12);flex-shrink:0}
+.preset-row .pr-main{flex:1;min-width:0}
+.preset-row .pr-main b{font-size:12px;color:var(--accent);display:block;margin-bottom:2px}
+.preset-row .pr-main span{font-size:10.5px;color:var(--muted);line-height:1.5}
+.preset-row .pr-del{border:0;background:transparent;color:var(--faint);font-size:15px;cursor:pointer;padding:0 4px}
+.preset-row .pr-del:hover{color:var(--up)}
+.preset-row.disabled{opacity:.45}
+
+@media (max-width:640px){
+  .mode-row{grid-template-columns:1fr}
+}
 
 /* ---------- 终端 ---------- */
 .term{max-width:1440px;margin:0 auto;padding:12px 20px 16px;display:flex;flex-direction:column;gap:10px}
