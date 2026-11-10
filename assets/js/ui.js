@@ -2,7 +2,7 @@
 window.SB = window.SB || {};
 SB.ui = (function () {
   var ICON = {
-    logo: '<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/><path d="M3 21h18"/><circle cx="18" cy="5" r="1.6"/></svg>',
+    logo: '<img src="assets/img/logo.svg?v=20261120" alt="时光雪球" style="width:28px;height:28px;border-radius:6px">',
     lock: '<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
     search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg>',
     chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-4 3 3 5-6"/></svg>',
@@ -77,7 +77,7 @@ SB.ui = (function () {
     }).join('');
     el.innerHTML = '<div class="head-in">' +
       '<a class="brand" href="index.html">' + ICON.logo +
-      '<span><b>滚雪球</b><span>TIME TRAVEL · 历史复盘</span></span></a>' +
+      '<span><b>时光雪球</b><span>TIME TRAVEL · 历史复盘</span></span></a>' +
       '<nav class="nav">' + nav + '</nav>' +
       '<div class="head-meta" id="headMeta">' + headMeta() + '</div>' +
       '</div>';

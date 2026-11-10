@@ -1,0 +1,16 @@
+{
+  "name": "时光雪球 · 历史投资复盘",
+  "short_name": "时光雪球",
+  "description": "选一个过去的日期，用当时可见的基本面与 K 线做决策，让真实行情带你走完接下来的几年。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1B2C",
+  "theme_color": "#1E3A5F",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
