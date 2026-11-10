@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>交易终端 · 滚雪球</title>
-<link rel="stylesheet" href="assets/css/app.css?v=20261116">
+<link rel="stylesheet" href="assets/css/app.css?v=20261117">
 </head>
 <body>
 
@@ -15,13 +15,13 @@
     <div class="acct"><span>总资产</span><b class="accent" id="aTotal">--</b></div>
     <div class="acct"><span>可用现金</span><b id="aCash">--</b></div>
     <div class="acct"><span>持仓市值</span><b id="aMv">--</b></div>
-    <div class="acct"><span id="aRetLbl">累计收益</span><b id="aRet">--</b></div>
-    <div class="acct"><span id="aCagrLbl">年化收益</span><b id="aCagr">--</b></div>
+    <div class="acct"><span id="aRetLbl"><span class="term" data-term="total_ret">累计收益<span class="info-i">ⓘ</span></span></span><b id="aRet">--</b></div>
+    <div class="acct"><span id="aCagrLbl"><span class="term" data-term="cagr">年化收益<span class="info-i">ⓘ</span></span></span><b id="aCagr">--</b></div>
     <div class="acct"><span>累计分红</span><b id="aDiv">--</b></div>
-    <div class="acct"><span>上证指数</span><b id="aIdx">--</b></div>
-    <label class="acct acct-opt" title="以首次买入日的组合总资产为基准，等待期不计入收益与年化">
+    <div class="acct"><span><span class="term" data-term="index_sh">上证指数<span class="info-i">ⓘ</span></span></span><b id="aIdx">--</b></div>
+    <label class="acct acct-opt">
       <input type="checkbox" id="aFromBuy">
-      <i>从首次买入算</i>
+      <i><span class="term" data-term="from_buy">从首次买入算<span class="info-i">ⓘ</span></span></i>
     </label>
   </section>
 
@@ -82,9 +82,9 @@
               <button data-p="quarter">季</button>
               <button data-p="year">年</button>
             </div>
-            <div class="seg" id="mSeg">
-              <button data-m="qfq" class="on">前复权</button>
-              <button data-m="raw">不复权</button>
+            <div class="tb-mode">
+              <span class="term" data-term="qfq"><button data-m="qfq" class="on">前复权<span class="info-i">ⓘ</span></button></span>
+              <span class="term" data-term="raw"><button data-m="raw">不复权<span class="info-i">ⓘ</span></button></span>
             </div>
             <span class="chip" id="chipBars">--</span>
             <span class="chip"><i class="legend-dot b"></i>B 买入</span>
@@ -125,14 +125,14 @@
     <aside class="panel">
       <div class="panel-head"><span>POINT-IN-TIME 估值</span><em id="snapTag">--</em></div>
       <div class="v-grid">
-        <div class="v-card"><div class="k">市净率 PB</div><div class="n" id="vPb">--</div><div class="s" id="vPbS">最新已披露净资产</div></div>
-        <div class="v-card"><div class="k">静态 PE</div><div class="n" id="vPe">--</div><div class="s" id="vPeS">上一年度年报</div></div>
-        <div class="v-card"><div class="k">TTM PE</div><div class="n" id="vTtm">--</div><div class="s">近四个单期归母</div></div>
-        <div class="v-card"><div class="k">推算股息率</div><div class="n" id="vDiv">--</div><div class="s">过去 12 个月派息</div></div>
+        <div class="v-card"><div class="k"><span class="term" data-term="pb">市净率 PB<span class="info-i">ⓘ</span></span></div><div class="n" id="vPb">--</div><div class="s" id="vPbS">最新已披露净资产</div></div>
+          <div class="v-card"><div class="k"><span class="term" data-term="pe_static">静态 PE<span class="info-i">ⓘ</span></span></div><div class="n" id="vPe">--</div><div class="s" id="vPeS">上一年度年报</div></div>
+          <div class="v-card"><div class="k"><span class="term" data-term="pe_ttm">TTM PE<span class="info-i">ⓘ</span></span></div><div class="n" id="vTtm">--</div><div class="s">近四个单期归母</div></div>
+          <div class="v-card"><div class="k"><span class="term" data-term="div_yield">推算股息率<span class="info-i">ⓘ</span></span></div><div class="n" id="vDiv">--</div><div class="s">过去 12 个月派息</div></div>
       </div>
 
       <div class="panel-head">
-        <span>成长能力</span>
+        <span><span class="term" data-term="growth">成长能力<span class="info-i">ⓘ</span></span></span>
         <div class="seg growth-period" id="growthPeriod">
           <button data-p="Q" class="on">按季度</button>
           <button data-p="Y">按年度</button>
@@ -140,8 +140,8 @@
       </div>
       <div class="growth-metric" id="growthMetric">
         <button data-m="rev" class="on">营业总收入<b id="mRev">--</b></button>
-        <button data-m="np">归母净利润<b id="mNp">--</b></button>
-        <button data-m="npNon">扣非净利润<b id="mNon">--</b></button>
+        <button data-m="np"><span class="term" data-term="net_profit">归母净利润<span class="info-i">ⓘ</span></span><b id="mNp">--</b></button>
+        <button data-m="npNon"><span class="term" data-term="deduct">扣非净利润<span class="info-i">ⓘ</span></span><b id="mNon">--</b></button>
       </div>
       <div id="growth"></div>
       <div class="table-wrap growth-table">
@@ -154,7 +154,7 @@
       <div class="panel-head"><span>已披露财报</span><em id="reportTag">--</em></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>报告期</th><th class="n">营收</th><th class="n">归母</th><th class="n">EPS</th></tr></thead>
+          <thead><tr><th>报告期</th><th class="n">营收</th><th class="n">归母</th><th class="n"><span class="term" data-term="eps">EPS<span class="info-i">ⓘ</span></span></th></tr></thead>
           <tbody id="reportBody"></tbody>
         </table>
       </div>
@@ -187,12 +187,13 @@
 
 <div id="toast"></div>
 
-<script src="assets/vendor/echarts.min.js?v=20261116"></script>
-<script src="assets/js/store.js?v=20261116"></script>
-<script src="assets/js/market.js?v=20261116"></script>
-<script src="assets/js/engine.js?v=20261116"></script>
-<script src="assets/js/ui.js?v=20261116"></script>
-<script src="assets/js/cycle.js?v=20261116"></script>
-<script src="assets/js/pages/terminal.js?v=20261116"></script>
+<script src="assets/vendor/echarts.min.js?v=20261117"></script>
+<script src="assets/js/store.js?v=20261117"></script>
+<script src="assets/js/market.js?v=20261117"></script>
+<script src="assets/js/engine.js?v=20261117"></script>
+<script src="assets/js/glossary.js?v=20261117"></script>
+<script src="assets/js/ui.js?v=20261117"></script>
+<script src="assets/js/cycle.js?v=20261117"></script>
+<script src="assets/js/pages/terminal.js?v=20261117"></script>
 </body>
 </html>
