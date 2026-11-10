@@ -325,18 +325,21 @@ SB.market = (function () {
       });
       if (cnt >= 2) ttmEps = sum;
     }
-    /* 近 12 个月已派股息；若期间无派息，退化为最近一次派息（年付股息避免出现 0 收益率） */
+    /* 近 12 个月已派股息；若期间无派息，退化为最近一次派息（年付股息避免出现 0 收益率）
+       统一折算到股票计价货币，和 price 口径一致 */
     var dps12 = 0, lastDps = 0, lastDate = '';
     st.events.forEach(function (ev) {
       if (!ev.dps) return;
       var d = new Date(date + 'T00:00:00Z');
       d.setUTCFullYear(d.getUTCFullYear() - 1);
       var dCut = d.toISOString().slice(0, 10);
+      var dpsCur = convert(ev.dps, ev.cur || st.currency, st.currency, ev.date);
+      if (dpsCur === null) return;
       if (ev.date > dCut && ev.date <= date) {
-        dps12 += toHKD(ev.dps, ev.cur || st.currency, ev.date);
+        dps12 += dpsCur;
       } else if (ev.date <= date && ev.date > lastDate) {
         lastDate = ev.date;
-        lastDps = toHKD(ev.dps, ev.cur || st.currency, ev.date);
+        lastDps = dpsCur;
       }
     });
     if (!dps12) dps12 = lastDps;
@@ -436,16 +439,36 @@ SB.market = (function () {
       return cnt >= 2 && sum > 0 ? sum : null;
     });
     var out = [], ri = -1;
+    // 股息事件（折算到计价货币）供逐日滚动计算股息率
+    var divEvs = (st.events || []).filter(function (e) { return e.dps && e.date <= until; })
+      .map(function (e) {
+        return { date: e.date, dps: convert(e.dps, e.cur || st.currency, st.currency, e.date) };
+      })
+      .filter(function (e) { return e.dps !== null; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
     st.bars.forEach(function (b) {
       if (b[0] > until) return;
       while (ri + 1 < reps.length && reps[ri + 1].disc <= b[0]) ri++;
       if (ri < 0) return;
       var r = reps[ri];
       var bv = convert(r.bvps, r.cur, st.currency, r.disc);
+      var dd = b[0];
+      var dCutObj = new Date(dd + 'T00:00:00Z');
+      dCutObj.setUTCFullYear(dCutObj.getUTCFullYear() - 1);
+      var dCut = dCutObj.toISOString().slice(0, 10);
+      var dps12 = 0, lastDps = 0;
+      for (var k = 0; k < divEvs.length; k++) {
+        if (divEvs[k].date > dd) break;
+        if (divEvs[k].date > dCut) dps12 += divEvs[k].dps;
+        lastDps = divEvs[k].dps;
+      }
+      if (!dps12) dps12 = lastDps;
       out.push({
-        date: b[0],
+        date: dd,
         pb: bv > 0 ? b[4] / bv : null,
-        pe: ttm[ri] ? b[4] / ttm[ri] : null
+        pe: ttm[ri] ? b[4] / ttm[ri] : null,
+        dy: b[4] > 0 && dps12 ? dps12 / b[4] : null
       });
     });
     return out;

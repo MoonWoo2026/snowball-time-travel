@@ -14,7 +14,7 @@
   var TEMPLATES = [
     { label: '每月定投 ¥2 万 + 季度再平衡', make: function (ctx) { return { type:'dca', name:'每月定投 ¥2 万', dcaPeriod:'month', dcaAmount:20000, rebalPeriod:'quarter', capital: ctx.capital, codes: ctx.codes.slice() }; } },
     { label: '季度定投 ¥5 万 + PB ≤1.0 买/≥2.0 卖', make: function (ctx) { return { type:'dca', name:'季度定投 ¥5 万', dcaPeriod:'quarter', dcaAmount:50000, tpPct:null, slPct:null, holdDays:null, capital: ctx.capital, codes: ctx.codes.slice() }; } },
-    { label: 'PB ≤0.9 低估买入 / PB ≥1.8 高估卖出', make: function (ctx) { return { type:'value', name:'PB ≤0.9 低估买入', valMetric:'pb', valBuy:0.9, valAmount:50000, valSell:1.8, capital: ctx.capital, codes: ctx.codes.slice() }; } }
+    { label: 'PB ≤0.9 低估买入 / PB ≥1.8 高估卖出', make: function (ctx) { return { type:'value', name:'PB ≤0.9 低估买入', valConds:[{m:'pb',v:0.9}], valLogic:'any', valAmount:50000, valSellConds:[{m:'pb',v:1.8}], valSellLogic:'any', capital: ctx.capital, codes: ctx.codes.slice() }; } }
   ];
 
   function $(id) { return document.getElementById(id); }
@@ -170,10 +170,19 @@
       if (p.rebalPeriod) s += '，' + (p.rebalPeriod === 'month' ? '每月' : p.rebalPeriod === 'quarter' ? '每季度' : '每年') + '再平衡';
       return s;
     }
-    var metric = (p.valMetric || 'pb').toUpperCase();
-    var s = metric + ' ≤ ' + p.valBuy + ' 买入 ¥' + (p.valAmount || 0).toLocaleString();
-    if (p.valSell) s += ' / ' + metric + ' ≥ ' + p.valSell + ' 卖出';
+    var s = condText(p.valConds, p.valLogic, false) + ' 买入 ¥' + (p.valAmount || 0).toLocaleString();
+    if (p.valSellConds && p.valSellConds.length) s += ' / ' + condText(p.valSellConds, p.valSellLogic, true) + ' 卖出';
     return s;
+  }
+
+  /* 条件文案：PB/PE 越低越便宜，股息率越高越便宜 */
+  function condText(conds, logic, isSell) {
+    if (!conds || !conds.length) return '—';
+    var label = { pb: 'PB', pe: 'PE', dy: '股息率' };
+    return conds.map(function (c) {
+      var op = c.m === 'dy' ? (isSell ? ' ≤ ' : ' ≥ ') : (isSell ? ' ≥ ' : ' ≤ ');
+      return (label[c.m] || c.m) + op + c.v + (c.m === 'dy' ? '%' : '');
+    }).join(logic === 'all' ? ' 且 ' : ' 或 ');
   }
 
   function addTemplate(i) {
@@ -192,7 +201,8 @@
     return {
       type: 'dca', start: $('startDate').value, capital: getCapital(), codes: watch.slice(),
       dcaPeriod: 'month', dcaAmount: 20000, rebalPeriod: null,
-      valMetric: 'pb', valBuy: 1.0, valAmount: 50000, valSell: null,
+      valConds: [{ m: 'pb', v: 1.0 }], valLogic: 'any', valAmount: 50000, valGapDays: 30,
+      valSellConds: [], valSellLogic: 'any',
       tpPct: null, tpMode: 'full', slPct: null, holdDays: null,
       name: ''
     };
@@ -213,6 +223,33 @@
         '<input id="' + id + '" type="number" value="' + val + '" step="' + step + '"' + (min != null ? ' min="' + min + '"' : '') + '>' +
         '<button type="button" data-st="1" data-step="' + step + '" data-for="' + id + '">+</button>' +
       '</span>';
+    }
+
+    // 估值条件：兼容旧的单指标 valMetric / valBuy / valSell
+    var bc = plan.valConds || (plan.valMetric ? [{ m: plan.valMetric, v: plan.valBuy }] : [{ m: 'pb', v: 1.0 }]);
+    var sc = plan.valSellConds || (plan.valSell ? [{ m: plan.valMetric || 'pb', v: plan.valSell }] : []);
+    function condVal(arr, m, dflt) {
+      var f = arr.filter(function (x) { return x.m === m; })[0];
+      return f && f.v != null ? f.v : dflt;
+    }
+    function condOn(arr, m) { return arr.some(function (x) { return x.m === m; }); }
+    var buyD = { pb: condVal(bc, 'pb', 1.0), pe: condVal(bc, 'pe', 15), dy: condVal(bc, 'dy', 4) };
+    var buyOn = { pb: condOn(bc, 'pb'), pe: condOn(bc, 'pe'), dy: condOn(bc, 'dy') };
+    var sellD = { pb: condVal(sc, 'pb', 2.0), pe: condVal(sc, 'pe', 30), dy: condVal(sc, 'dy', 2) };
+    var sellOn = { pb: condOn(sc, 'pb'), pe: condOn(sc, 'pe'), dy: condOn(sc, 'dy') };
+
+    function condRowHTML(pfx, m, label, op, val, on, step) {
+      var id = pfx + '_' + m;
+      return '<div class="cond-row">' +
+        '<input type="checkbox" id="' + id + '_on"' + (on ? ' checked' : '') + '>' +
+        '<span class="cr-name">' + label + '</span>' +
+        '<span class="cr-op">' + op + '</span>' +
+        '<span class="stepper">' +
+          '<button type="button" data-st="-1" data-step="' + step + '" data-for="' + id + '">−</button>' +
+          '<input id="' + id + '" type="number" step="' + step + '" value="' + val + '" min="0">' +
+          '<button type="button" data-st="1" data-step="' + step + '" data-for="' + id + '">+</button>' +
+        '</span>' +
+      '</div>';
     }
 
     var mask = document.createElement('div');
@@ -268,18 +305,35 @@
           '</div>' +
         '</div>' +
         '<div class="pt-value" style="' + (plan.type==='value'?'':'display:none') + '">' +
-          '<div class="s-row">' +
-            '<div class="fld thin"><span class="fld-t">估值指标</span>' +
-              '<div class="seg" id="ptMetric">' +
-                '<button data-m="pb" class="' + (plan.valMetric!=='pe'?'on':'') + '">PB 市净率</button>' +
-                '<button data-m="pe" class="' + (plan.valMetric==='pe'?'on':'') + '">PE(TTM)</button>' +
+          '<div class="fld"><span class="fld-t">买入条件 <i class="k tiny">勾选需要的指标，触发即买入</i></span>' +
+            '<div class="cond-list">' +
+              condRowHTML('ptB', 'pb', 'PB 市净率', '≤', buyD.pb, buyOn.pb, 0.1) +
+              condRowHTML('ptB', 'pe', 'PE(TTM)', '≤', buyD.pe, buyOn.pe, 1) +
+              condRowHTML('ptB', 'dy', '股息率', '≥', buyD.dy, buyOn.dy, 0.5) +
+            '</div>' +
+            '<div class="logic-line"><span>触发方式</span>' +
+              '<div class="seg" id="ptBuyLogic">' +
+                '<button data-l="any" class="' + (plan.valLogic==='all'?'':'on') + '">任一满足</button>' +
+                '<button data-l="all" class="' + (plan.valLogic==='all'?'on':'') + '">全部满足</button>' +
               '</div>' +
             '</div>' +
-            '<label class="thin">买入阈值 ≤' + stepperHTML('ptBuy', plan.valBuy||1.0, 0.1, 0) + '</label>' +
           '</div>' +
           '<div class="s-row">' +
-            '<label class="thin">每次买入金额' + stepperHTML('ptValAmount', plan.valAmount||50000, 1000, 0) + '</label>' +
-            '<label class="thin">估值止盈（≥ 全清）' + stepperHTML('ptValSell', plan.valSell||'', 0.1, 0) + '</label>' +
+            '<div class="fld thin"><span class="fld-t">每次买入金额（CNY）</span>' + stepperHTML('ptValAmount', plan.valAmount||50000, 1000, 0) + '</div>' +
+            '<div class="fld thin"><span class="fld-t">买入间隔（天）</span>' + stepperHTML('ptValGap', plan.valGapDays==null?30:plan.valGapDays, 5, 1) + '</div>' +
+          '</div>' +
+          '<div class="fld"><span class="fld-t">卖出条件 <i class="k tiny">留空=不卖，长期持有</i></span>' +
+            '<div class="cond-list">' +
+              condRowHTML('ptS', 'pb', 'PB 市净率', '≥', sellD.pb, sellOn.pb, 0.1) +
+              condRowHTML('ptS', 'pe', 'PE(TTM)', '≥', sellD.pe, sellOn.pe, 1) +
+              condRowHTML('ptS', 'dy', '股息率', '≤', sellD.dy, sellOn.dy, 0.5) +
+            '</div>' +
+            '<div class="logic-line"><span>触发方式</span>' +
+              '<div class="seg" id="ptSellLogic">' +
+                '<button data-l="any" class="' + (plan.valSellLogic==='all'?'':'on') + '">任一满足</button>' +
+                '<button data-l="all" class="' + (plan.valSellLogic==='all'?'on':'') + '">全部满足</button>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="sell-block">' +
@@ -332,7 +386,7 @@
       refreshCnt();
     };
 
-    // 周期 / 指标分段
+    // 周期 / 触发方式分段
     function wireSeg(sel) {
       mask.querySelectorAll(sel + ' button').forEach(function (b) {
         b.onclick = function () {
@@ -342,7 +396,8 @@
       });
     }
     wireSeg('#ptPeriod');
-    wireSeg('#ptMetric');
+    wireSeg('#ptBuyLogic');
+    wireSeg('#ptSellLogic');
 
     // 数字步进
     mask.querySelectorAll('.stepper button').forEach(function (b) {
@@ -382,11 +437,26 @@
         plan.dcaAmount = +mask.querySelector('#ptAmount').value || 10000;
         plan.rebalPeriod = mask.querySelector('#ptRebal').value || null;
       } else {
-        plan.valMetric = mask.querySelector('#ptMetric button.on').getAttribute('data-m');
-        plan.valBuy = +mask.querySelector('#ptBuy').value || 1;
+        function readConds(pfx) {
+          var out = [];
+          ['pb', 'pe', 'dy'].forEach(function (m) {
+            var cb = mask.querySelector('#' + pfx + '_' + m + '_on');
+            if (!cb || !cb.checked) return;
+            var v = mask.querySelector('#' + pfx + '_' + m).value;
+            if (v !== '') out.push({ m: m, v: +v });
+          });
+          return out;
+        }
+        var buyConds = readConds('ptB');
+        if (!buyConds.length) return U.toast('至少勾选一个买入条件');
+        plan.valConds = buyConds;
+        plan.valLogic = mask.querySelector('#ptBuyLogic button.on').getAttribute('data-l');
         plan.valAmount = +mask.querySelector('#ptValAmount').value || 20000;
-        var vs = mask.querySelector('#ptValSell').value;
-        plan.valSell = vs ? +vs : null;
+        plan.valGapDays = +mask.querySelector('#ptValGap').value || 30;
+        plan.valSellConds = readConds('ptS');
+        plan.valSellLogic = mask.querySelector('#ptSellLogic button.on').getAttribute('data-l');
+        // 清掉旧版单指标字段，避免引擎走兼容分支
+        delete plan.valMetric; delete plan.valBuy; delete plan.valSell;
       }
       var tp = mask.querySelector('#ptTpPct').value;
       var sl = mask.querySelector('#ptSlPct').value;
@@ -404,7 +474,7 @@
         if (!mask.querySelector('#ptName').value.trim()) {
           plan.name = t === 'dca'
             ? (plan.dcaPeriod === 'week' ? '每周定投 ¥' : plan.dcaPeriod === 'month' ? '每月定投 ¥' : '每季度定投 ¥') + plan.dcaAmount.toLocaleString()
-            : (plan.valMetric === 'pb' ? 'PB' : 'PE') + ' ≤ ' + plan.valBuy + ' 估值买入';
+            : condText(plan.valConds, plan.valLogic, false) + ' 估值买入';
         }
         PRESETS.push({ plan: plan, enabled: true, color: CURVE_COLORS[PRESETS.length % CURVE_COLORS.length] });
       }
@@ -471,7 +541,10 @@
       p.plan.start = d;
       p.plan.end = endDate;
       p.plan.capital = wan * 10000;
-      p.plan.codes = watch.slice();
+      p.plan.codes = (p.plan.codes && p.plan.codes.length ? p.plan.codes : watch).filter(function (c) {
+        return watch.indexOf(c) >= 0;
+      });
+      if (!p.plan.codes.length) p.plan.codes = watch.slice();
       return { plan: p.plan, color: p.color };
     });
     E.save();

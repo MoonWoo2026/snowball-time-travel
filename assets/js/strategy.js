@@ -11,10 +11,12 @@
  *   dcaAmount: 20000,
  *   rebalPeriod: null | 'month' | 'quarter' | 'year',  // 定期再平衡
  *   // 价值触发参数
- *   valMetric: 'pb' | 'pe',
- *   valBuy: 1.0,
- *   valAmount: 50000,
- *   valSell: null,  // 估值止盈阈值（≥ 则清仓）
+ *   valConds: [{ m:'pb', v:1.0 }, { m:'dy', v:4.0 }], // 买入条件：m=pb|pe|dy，dy 用百分比
+ *   valLogic: 'any' | 'all',      // 任一满足 / 全部满足
+ *   valAmount: 50000,             // 每次买入金额
+ *   valSellConds: [{ m:'pb', v:2.0 }], // 卖出条件（可选，留空=不卖）
+ *   valSellLogic: 'any' | 'all',
+ *   // 旧版单指标写法仍兼容：valMetric + valBuy + valSell
  *   // 卖出通用参数（两种策略都用）
  *   tpPct: 0.30,           // 目标收益率止盈（30%），null/0=关闭
  *   tpMode: 'full'|'part', // 一次性全清 / 分批（1/3 起步）
@@ -44,6 +46,33 @@
 
   function dayDiff(a, b) {
     return Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / 86400000));
+  }
+
+  var METRIC_LABEL = { pb: 'PB', pe: 'PE', dy: '股息率' };
+
+  /* 条件比较：PB/PE 越低越便宜，股息率越高越便宜 */
+  function buyHit(c, v) {
+    var x = v[c.m];
+    if (x === null || x === undefined) return false;
+    return c.m === 'dy' ? x * 100 >= c.v : x <= c.v;
+  }
+  function sellHit(c, v) {
+    var x = v[c.m];
+    if (x === null || x === undefined) return false;
+    return c.m === 'dy' ? x * 100 <= c.v : x >= c.v;
+  }
+  function matchConds(conds, logic, fn, v) {
+    if (!conds || !conds.length) return false;
+    return logic === 'all'
+      ? conds.every(function (c) { return fn(c, v); })
+      : conds.some(function (c) { return fn(c, v); });
+  }
+  function condText(conds, logic, isSell) {
+    return conds.map(function (c) {
+      var L = METRIC_LABEL[c.m] || c.m;
+      var op = c.m === 'dy' ? (isSell ? ' ≤ ' : ' ≥ ') : (isSell ? ' ≥ ' : ' ≤ ');
+      return L + op + c.v + (c.m === 'dy' ? '%' : '');
+    }).join(logic === 'all' ? ' 且 ' : ' 或 ');
   }
   function snapNextFridayOrFirst(date, kind) {
     var d = new Date(date + 'T00:00:00Z');
@@ -82,6 +111,19 @@
     // 估值序列
     var vsMap = {};
     codes.forEach(function (c) { vsMap[c] = M.valuationSeries(c, plan.end); });
+
+    // 条件归一化（兼容旧的单指标写法）
+    var buyConds = plan.valConds;
+    if (!buyConds && plan.valMetric) buyConds = [{ m: plan.valMetric, v: plan.valBuy }];
+    buyConds = (buyConds || []).filter(function (c) { return c && c.m && c.v !== null && c.v !== '' && c.v !== undefined; });
+    var sellConds = plan.valSellConds;
+    if (!sellConds && plan.valSell !== null && plan.valSell !== '' && plan.valSell !== undefined) {
+      sellConds = [{ m: plan.valMetric || 'pb', v: plan.valSell }];
+    }
+    sellConds = (sellConds || []).filter(function (c) { return c && c.m && c.v !== null && c.v !== '' && c.v !== undefined; });
+    var buyLogic = plan.valLogic === 'all' ? 'all' : 'any';
+    var sellLogic = plan.valSellLogic === 'all' ? 'all' : 'any';
+    var viMap = {};
 
     var all = M.meta().calendar;
     var cal = all.filter(function (d) { return d >= plan.start && d <= plan.end; });
@@ -282,24 +324,26 @@
         nextDca = snapNextFridayOrFirst(d, plan.dcaPeriod);
       }
 
-      // 估值触发
+      // 估值触发（支持 PB / PE / 股息率 多条件，任一或全部满足）
       if (plan.type === 'value') {
         codes.forEach(function (c) {
           var vs = vsMap[c];
           if (!vs || !vs.length) return;
-          var v = null;
-          for (var i = vs.length - 1; i >= 0; i--) { if (vs[i].date <= d) { v = vs[i]; break; } }
-          if (!v) return;
+          var i = viMap[c] === undefined ? -1 : viMap[c];
+          while (i + 1 < vs.length && vs[i + 1].date <= d) i++;
+          viMap[c] = i;
+          if (i < 0) return;
+          var v = vs[i];
 
-          var mv = plan.valMetric === 'pe' ? v.pe : v.pb;
-          if (mv === null || mv === undefined) return;
-
-          // 估值止盈（≥ 清仓）
-          if (plan.valSell != null && pos[c] && mv >= plan.valSell && pos[c].openedAt !== d) {
-            doSellAll(c, d, plan.valMetric.toUpperCase() + ' ≥ ' + plan.valSell);
+          // 估值止盈（先卖）
+          if (sellConds.length && pos[c] && pos[c].openedAt !== d &&
+              matchConds(sellConds, sellLogic, sellHit, v)) {
+            doSellAll(c, d, '估值止盈 ' + condText(sellConds, sellLogic, true));
           }
-          // 买入
-          if (mv <= plan.valBuy && lastBuy[c] !== d) {
+          // 买入：同标的最多每 valGapDays 天触发一次，避免条件长期成立时几天内把子弹打光
+          var gap = plan.valGapDays == null ? 30 : plan.valGapDays;
+          if (buyConds.length && (!lastBuy[c] || dayDiff(lastBuy[c], d) >= gap) &&
+              matchConds(buyConds, buyLogic, buyHit, v)) {
             doBuy(c, plan.valAmount, d);
           }
         });

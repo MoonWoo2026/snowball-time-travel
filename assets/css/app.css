@@ -505,6 +505,17 @@ input,select{font-family:inherit}
 .strat-modal .quick-amt button{border:1px solid var(--rule);background:#fff;color:var(--muted);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer}
 .strat-modal .quick-amt button:hover,.strat-modal .quick-amt button.on{border-color:var(--accent2);color:var(--accent2)}
 .strat-modal .seg button{padding:5px 12px;font-size:11px}
+.strat-modal .cond-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.strat-modal .cond-row{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:5px;padding:5px 8px;background:#fff}
+.strat-modal .cond-row input[type=checkbox]{width:13px;height:13px;min-width:13px;flex:none;margin:0;padding:0;accent-color:var(--accent);cursor:pointer}
+.strat-modal .cr-name{flex:1;min-width:0;font-size:11px;color:var(--ink)}
+.strat-modal .cr-op{flex:none;font-size:11px;color:var(--faint)}
+.strat-modal .cond-row .stepper{flex:none;width:118px}
+.strat-modal .cond-row .stepper input{padding:4px 6px;font-size:11px}
+.strat-modal .cond-row .stepper button{width:22px;height:26px;font-size:12px}
+.strat-modal .logic-line{display:flex;align-items:center;gap:8px}
+.strat-modal .logic-line > span{flex:none;font-size:10.5px;color:var(--faint)}
+.strat-modal .logic-line .seg{margin-bottom:0}
 
 /* ---------- 存档：时间栏按钮与弹窗 ---------- */
 .tb-save{display:flex;gap:6px;align-items:center;flex:0 0 auto}

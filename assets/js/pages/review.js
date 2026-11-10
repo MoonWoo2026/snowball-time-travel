@@ -90,6 +90,16 @@
   var STRATS = []; // 已添加的自动策略 [{plan, result}]
   var CURVE_COLORS = ['#6B8FB8', '#8B6E5A', '#4A8F6A', '#A57989']; // 蓝、棕、绿、粉（避开深蓝#1E3A5F和铜金#B07A2E）
 
+  /* 条件文案：PB/PE 越低越便宜，股息率越高越便宜 */
+  function condText(conds, logic, isSell) {
+    if (!conds || !conds.length) return '—';
+    var label = { pb: 'PB', pe: 'PE', dy: '股息率' };
+    return conds.map(function (c) {
+      var op = c.m === 'dy' ? (isSell ? ' ≤ ' : ' ≥ ') : (isSell ? ' ≥ ' : ' ≤ ');
+      return (label[c.m] || c.m) + op + c.v + (c.m === 'dy' ? '%' : '');
+    }).join(logic === 'all' ? ' 且 ' : ' 或 ');
+  }
+
   function days(a, b) {
     return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000));
   }
@@ -604,6 +614,19 @@
         '<button type="button" data-st="1" data-step="' + step + '" data-for="' + id + '">+</button>' +
       '</span>';
     };
+    var condRow = function (pfx, m, label, op, val, on, step) {
+      var id = pfx + '_' + m;
+      return '<div class="cond-row">' +
+        '<input type="checkbox" id="' + id + '_on"' + (on ? ' checked' : '') + '>' +
+        '<span class="cr-name">' + label + '</span>' +
+        '<span class="cr-op">' + op + '</span>' +
+        '<span class="stepper">' +
+          '<button type="button" data-st="-1" data-step="' + step + '" data-for="' + id + '">−</button>' +
+          '<input id="' + id + '" type="number" value="' + val + '" step="' + step + '" min="0">' +
+          '<button type="button" data-st="1" data-step="' + step + '" data-for="' + id + '">+</button>' +
+        '</span>' +
+      '</div>';
+    };
     mask.innerHTML =
       '<div class="modal strat-modal">' +
         '<h4>添加自动策略</h4>' +
@@ -654,18 +677,35 @@
           '</div>' +
         '</div>' +
         '<div class="st-value" style="display:none">' +
-          '<div class="s-row">' +
-            '<div class="fld thin"><span class="fld-t">估值指标</span>' +
-              '<div class="seg" id="stMetric">' +
-                '<button data-m="pb" class="on">PB 市净率</button>' +
-                '<button data-m="pe">PE(TTM)</button>' +
+          '<div class="fld"><span class="fld-t">买入条件 <i class="k tiny">勾选需要的指标，触发即买入</i></span>' +
+            '<div class="cond-list">' +
+              condRow('stB', 'pb', 'PB 市净率', '≤', 1.0, true, 0.1) +
+              condRow('stB', 'pe', 'PE(TTM)', '≤', 15, false, 1) +
+              condRow('stB', 'dy', '股息率', '≥', 4, false, 0.5) +
+            '</div>' +
+            '<div class="logic-line"><span>触发方式</span>' +
+              '<div class="seg" id="stBuyLogic">' +
+                '<button data-l="any" class="on">任一满足</button>' +
+                '<button data-l="all">全部满足</button>' +
               '</div>' +
             '</div>' +
-            '<label class="thin">买入阈值 ≤ ' + stepperHTML('stBuy', 1.0, 0.1) + '</label>' +
           '</div>' +
           '<div class="s-row">' +
-            '<label class="thin">每次买入金额 ' + stepperHTML('stValAmount', 50000, 1000) + '</label>' +
-            '<label class="thin">估值止盈（≥ 全清）' + stepperHTML('stValSell', '', 0.1) + '</label>' +
+            '<div class="fld thin"><span class="fld-t">每次买入金额（CNY）</span>' + stepperHTML('stValAmount', 50000, 1000) + '</div>' +
+            '<div class="fld thin"><span class="fld-t">买入间隔（天）</span>' + stepperHTML('stValGap', 30, 5) + '</div>' +
+          '</div>' +
+          '<div class="fld"><span class="fld-t">卖出条件 <i class="k tiny">留空=不卖，长期持有</i></span>' +
+            '<div class="cond-list">' +
+              condRow('stS', 'pb', 'PB 市净率', '≥', 2.0, false, 0.1) +
+              condRow('stS', 'pe', 'PE(TTM)', '≥', 30, false, 1) +
+              condRow('stS', 'dy', '股息率', '≤', 2, false, 0.5) +
+            '</div>' +
+            '<div class="logic-line"><span>触发方式</span>' +
+              '<div class="seg" id="stSellLogic">' +
+                '<button data-l="any" class="on">任一满足</button>' +
+                '<button data-l="all">全部满足</button>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
 
@@ -725,7 +765,7 @@
     };
 
     // 分段选择
-    ['#stPeriod', '#stMetric'].forEach(function (sel) {
+    ['#stPeriod', '#stBuyLogic', '#stSellLogic'].forEach(function (sel) {
       mask.querySelectorAll(sel + ' button').forEach(function (b) {
         b.onclick = function () {
           mask.querySelectorAll(sel + ' button').forEach(function (x) { x.classList.remove('on'); });
@@ -778,13 +818,26 @@
           plan.name = (plan.dcaPeriod === 'week' ? '每周定投 ¥' : plan.dcaPeriod === 'month' ? '每月定投 ¥' : '每季度定投 ¥') + plan.dcaAmount.toLocaleString();
         }
       } else {
-        plan.valMetric = mask.querySelector('#stMetric button.on').getAttribute('data-m');
-        plan.valBuy = +mask.querySelector('#stBuy').value || 1;
+        function readConds(pfx) {
+          var out = [];
+          ['pb', 'pe', 'dy'].forEach(function (m) {
+            var cb = mask.querySelector('#' + pfx + '_' + m + '_on');
+            if (!cb || !cb.checked) return;
+            var v = mask.querySelector('#' + pfx + '_' + m).value;
+            if (v !== '') out.push({ m: m, v: +v });
+          });
+          return out;
+        }
+        var buyConds = readConds('stB');
+        if (!buyConds.length) return U.toast('至少勾选一个买入条件');
+        plan.valConds = buyConds;
+        plan.valLogic = mask.querySelector('#stBuyLogic button.on').getAttribute('data-l');
         plan.valAmount = +mask.querySelector('#stValAmount').value || 20000;
-        var vs = mask.querySelector('#stValSell').value;
-        plan.valSell = vs ? +vs : null;
+        plan.valGapDays = +mask.querySelector('#stValGap').value || 30;
+        plan.valSellConds = readConds('stS');
+        plan.valSellLogic = mask.querySelector('#stSellLogic button.on').getAttribute('data-l');
         if (!mask.querySelector('#stName').value.trim()) {
-          plan.name = (plan.valMetric === 'pb' ? 'PB' : 'PE') + ' ≤ ' + plan.valBuy + ' 估值买入';
+          plan.name = condText(plan.valConds, plan.valLogic, false) + ' 估值买入';
         }
       }
       // 通用卖出
