@@ -62,6 +62,17 @@ SB.market = (function () {
     });
   }
 
+  /* 上证指数序列：只到 end 为止，用于主图叠加对比 */
+  function indexSeries(end) {
+    if (!idxBars.length) return [];
+    var out = [];
+    for (var i = 0; i < idxBars.length; i++) {
+      if (end && idxBars[i][0] > end) break;
+      out.push([idxBars[i][0], idxBars[i][1]]);
+    }
+    return out;
+  }
+
   /* 上证指数：不晚于 date 的收盘与涨跌幅（严格当日可见） */
   function indexAt(date) {
     if (!idxBars.length) return null;
@@ -528,6 +539,7 @@ SB.market = (function () {
     stock: stock,
     barAt: barAt,
     indexAt: indexAt,
+    indexSeries: indexSeries,
     valuationSeries: valuationSeries,
     priceAt: priceAt,
     priceOn: priceOn,

@@ -8,7 +8,7 @@
   };
   var LIMIT = { day: 800, week: 400, month: 240, quarter: 120, year: 80 };
   var S = null;
-  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos', growthMetric: 'rev', growthPeriod: 'Q',
+  var state = { code: null, period: 'day', mode: 'qfq', tab: 'pos', growthMetric: 'rev', growthPeriod: 'Q', showIdx: true,
     god: { on: false, kind: 'pb', x: 0.9 } };
   var chart, growth, curve;
   var playTimer = null;
@@ -188,6 +188,25 @@
     var boll = M.boll(closes, 20, 2);
     var rsi = M.rsi(closes, 14);
 
+    /* 上证指数叠加：按可视窗口起点归一化到股价刻度，只比走势、不抢主图空间 */
+    var show = Math.min(bars.length, 160);
+    var visStart = Math.max(0, bars.length - show);
+    var idxRaw = null, idxLine = null, idxBase = null;
+    if (state.showIdx) {
+      var is = M.indexSeries(S.date), p = 0;
+      idxRaw = bars.map(function (b) {
+        while (p + 1 < is.length && is[p + 1][0] <= b.date) p++;
+        return is.length && is[p][0] <= b.date ? is[p][1] : null;
+      });
+      var priceBase = null;
+      for (var vb = visStart; vb < idxRaw.length; vb++) {
+        if (idxRaw[vb] != null) { idxBase = idxRaw[vb]; priceBase = bars[vb].close; break; }
+      }
+      if (idxBase && priceBase) {
+        idxLine = idxRaw.map(function (v) { return v == null ? null : priceBase * v / idxBase; });
+      }
+    }
+
     var marks = [];
     S.trades.forEach(function (t) {
       if (t.code !== code) return;
@@ -208,7 +227,6 @@
       });
     });
 
-    var show = Math.min(bars.length, 160);
     godCache = godPoints(code, bars, startPos, all);
     updateGodTip(godCache);
     var dzStart = bars.length > show ? (1 - show / bars.length) * 100 : 0;
@@ -229,10 +247,17 @@
           for (var gi = 0; gi < godCache.pts.length; gi++) {
             if (godCache.pts[gi].value[0] === ps[0].dataIndex) { gv = godCache.pts[gi].mv; break; }
           }
+          var iv = idxRaw ? idxRaw[ps[0].dataIndex] : null;
+          var ivTxt = '';
+          if (iv != null) {
+            var ch = idxBase ? (iv / idxBase - 1) * 100 : 0;
+            ivTxt = '<br><span style="color:#8A93A0">上证 ' + iv.toFixed(2) +
+              '　' + (ch >= 0 ? '+' : '') + ch.toFixed(1) + '%</span>';
+          }
           return '<b>' + b.key + '</b><br>' +
             '开 ' + b.open.toFixed(2) + '　高 ' + b.high.toFixed(2) + '<br>' +
             '低 ' + b.low.toFixed(2) + '　收 <span style="color:' + pc + '">' + b.close.toFixed(2) + '</span><br>' +
-            '量 ' + (b.volume / 1e4).toFixed(1) + '万' +
+            '量 ' + (b.volume / 1e4).toFixed(1) + '万' + ivTxt +
             (gv === null ? '' : '<br><span style="color:' + C.gold + '">' +
               (state.god.kind === 'pb' ? 'PB ' : 'PE ') + gv.toFixed(2) + ' 倍</span>');
         }
@@ -278,7 +303,12 @@
             data: [{ yAxis: 70 }, { yAxis: 30 }]
           }
         }
-      ].concat(godSeries())
+      ].concat(idxLine ? [{
+        name: '上证指数', type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: idxLine,
+        symbol: 'none', smooth: false, z: 1, connectNulls: true,
+        lineStyle: { width: 1.1, type: [4, 4], color: '#77818F', opacity: .58 },
+        emphasis: { disabled: true }
+      }] : []).concat(godSeries())
     }, true);
   }
 
@@ -690,6 +720,12 @@
     });
 
     $('tbSlots').addEventListener('click', function () { U.slotsDialog(); });
+
+    $('idxTog').addEventListener('click', function () {
+      state.showIdx = !state.showIdx;
+      this.classList.toggle('on', state.showIdx);
+      renderChart();
+    });
 
     $('cycToggle').addEventListener('change', function () { SB.cycle.toggle(this.checked); });
     $('cycRun').addEventListener('click', function () { SB.cycle.derive(); });
