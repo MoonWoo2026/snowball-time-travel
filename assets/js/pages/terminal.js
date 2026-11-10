@@ -158,7 +158,9 @@
     var all = M.viewBars(code, state.period, state.mode, S.date);
     var label = { day: '日K', week: '周K', month: '月K', quarter: '季K', year: '年K' }[state.period];
     $('cTitle').textContent = st.name + ' · ' + label + (state.mode === 'qfq' ? ' 前复权' : ' 不复权');
-    $('cSub').textContent = code + ' · ' + st.market + ' 股 · ' + (st.currency === 'HKD' ? '港元' : '人民币') +
+    var mkName = st.market === 'US' ? '美股' : st.market + ' 股';
+    var curName = st.currency === 'HKD' ? '港元' : st.currency === 'USD' ? '美元' : '人民币';
+    $('cSub').textContent = code + ' · ' + mkName + ' · ' + curName +
       ' · 数据封印至 ' + S.date;
     $('chipBars').textContent = all.length + ' 根';
 
@@ -400,6 +402,8 @@
       : '暂无已披露报表';
     if (!v) {
       ['vPb', 'vPe', 'vTtm', 'vDiv'].forEach(function (id) { $(id).textContent = '--'; });
+      $('vPbS').textContent = '暂无已披露报表';
+      $('vPeS').textContent = '暂无年报';
       return;
     }
     $('vPb').textContent = v.pb ? v.pb.toFixed(2) : '--';
@@ -427,7 +431,7 @@
   function renderGrowth() {
     var st = M.stock(state.code);
     var reps = M.visibleReports(state.code, S.date);
-    var unit = st.currency === 'HKD' ? '亿港元' : '亿元';
+    var unit = st.currency === 'HKD' ? '亿港元' : st.currency === 'USD' ? '亿美元' : '亿元';
     var curMetric = GROWTH_METRICS[state.growthMetric];
 
     /* 各指标最新单期值（显示在指标 tab 上） */
@@ -532,7 +536,7 @@
   function renderReports() {
     var st = M.stock(state.code);
     var reps = M.visibleReports(state.code, S.date).slice(-8).reverse();
-    var unit = st.currency === 'HKD' ? '亿港元' : '亿元';
+    var unit = st.currency === 'HKD' ? '亿港元' : st.currency === 'USD' ? '亿美元' : '亿元';
     $('reportTag').textContent = reps.length ? reps.length + ' 期 · ' + unit : '暂无';
     if (!reps.length) {
       $('reportBody').innerHTML = '<tr><td colspan="4" class="empty">该时点尚无已披露财报</td></tr>';

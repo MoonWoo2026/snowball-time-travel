@@ -46,6 +46,8 @@ STOCKS = [
     dict(code='01810', name='小米集团', market='HK', sector='消费电子', secid='116.01810', cur='HKD', default=False),
     dict(code='002594', name='比亚迪', market='A', sector='汽车', secid='0.002594', cur='CNY', default=False),
     dict(code='00941', name='中国移动', market='HK', sector='通信', secid='116.00941', cur='HKD', default=False),
+    # 美股 ETF：可交易，无财报，暂不计分红
+    dict(code='SPY', name='标普500ETF', market='US', sector='指数基金', secid='107.SPY', cur='USD', default=False),
 ]
 
 REFRESH = '--refresh' in sys.argv
@@ -317,10 +319,18 @@ def main():
         bars = klines(cfg['secid'], code)
         if not bars:
             raise RuntimeError('%s 无行情' % code)
-        events = a_dividends(code) if cfg['market'] == 'A' else hk_corporate(code)
-        reports = a_reports(code) if cfg['market'] == 'A' else hk_reports(code)
-        for b in bars:
-            all_dates.add(b[0])
+        if cfg['market'] == 'A':
+            events = a_dividends(code)
+            reports = a_reports(code)
+        elif cfg['market'] == 'HK':
+            events = hk_corporate(code)
+            reports = hk_reports(code)
+        else:  # US：ETF 无财报，暂不处理分红
+            events = []
+            reports = []
+        if cfg['market'] != 'US':
+            for b in bars:
+                all_dates.add(b[0])
         payload = {
             'code': code, 'name': cfg['name'], 'market': cfg['market'],
             'sector': cfg['sector'], 'currency': cfg['cur'],

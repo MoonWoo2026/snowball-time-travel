@@ -138,6 +138,11 @@ SB.engine = (function () {
       var stamp = side === 'sell' ? amount * (dateStr >= '2023-08-28' ? 0.0005 : 0.001) : 0;
       return { commission: commission, stamp: stamp, other: transfer, cny: commission + transfer + stamp };
     }
+    if (st.market === 'US') {
+      /* 美股：零佣金，仅卖出收 SEC/FINRA 规费（美元） */
+      var reg = side === 'sell' ? amount * 0.0000278 + qty * 0.000166 : 0;
+      return { commission: 0, stamp: 0, other: reg, cny: M.toCNY(reg, 'USD', dateStr) };
+    }
     var hk = Math.max(amount * 0.00025, 3) + amount * 0.001
       + amount * 0.0000565 + amount * 0.000027 + amount * 0.00002;
     return {

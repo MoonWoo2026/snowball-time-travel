@@ -2,7 +2,7 @@
 window.SB = window.SB || {};
 SB.ui = (function () {
   var ICON = {
-    logo: '<img src="assets/img/logo.svg?v=20261209" alt="时光雪球" style="width:28px;height:28px;border-radius:6px">',
+    logo: '<img src="assets/img/logo.svg?v=20261210" alt="时光雪球" style="width:28px;height:28px;border-radius:6px">',
     lock: '<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
     search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg>',
     chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-4 3 3 5-6"/></svg>',
@@ -47,7 +47,8 @@ SB.ui = (function () {
   function px(v, cur) {
     if (v === null || v === undefined || !isFinite(v)) return '--';
     var s = Number(v) >= 100 ? v.toFixed(2) : v.toFixed(3);
-    return (cur === 'HKD' ? 'HK$' : '¥') + Number(s).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+    var sym = cur === 'HKD' ? 'HK$' : cur === 'USD' ? 'US$' : '¥';
+    return sym + Number(s).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
   }
   function cls(v) { return v > 0 ? 'up' : v < 0 ? 'down' : ''; }
 

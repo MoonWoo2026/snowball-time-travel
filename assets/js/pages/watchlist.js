@@ -62,11 +62,11 @@
         '<div class="wc-top"><b>' + U.esc(st.name) + '</b><span>' + code + ' · ' + st.market + '</span>' +
         '<em class="wc-chg ' + U.cls(chg) + '">' + (chg === null ? '--' : U.pct(chg)) + '</em></div>' +
         '<div class="wc-price">' + (px === null ? '未上市' : U.px(px, st.currency)) +
-        (px === null ? '' : '<small>' + (st.currency === 'HKD' ? '港元' : '人民币') + '</small>') + '</div>' +
+        (px === null ? '' : '<small>' + (st.currency === 'HKD' ? '港元' : st.currency === 'USD' ? '美元' : '人民币') + '</small>') + '</div>' +
         '<div class="wc-fund">' +
         '<div class="wf" title="PE(TTM) = 现价 ÷ 最近四个报告期每股收益之和"><span>PE(TTM)</span><b>' + fmtPe(v && v.peTtm) + '</b><em>' + bandTxt(band && band.pe) + '</em></div>' +
         '<div class="wf" title="PB = 现价 ÷ 最新每股净资产"><span>PB</span><b>' + U.num(v && v.pb, 2) + '</b><em>' + bandTxt(band && band.pb) + '</em></div>' +
-        '<div class="wf" title="近 12 个月已派股息 ÷ 现价；ROE = 滚动每股收益 ÷ 每股净资产"><span>股息率</span><b>' + (v && v.divYield !== null && v.divYield !== undefined ? (v.divYield * 100).toFixed(2) + '%' : '--') + '</b>' +
+        '<div class="wf" title="近 12 个月已派股息 ÷ 现价；ROE = 滚动每股收益 ÷ 每股净资产"><span>股息率</span><b>' + (v && v.divYield ? (v.divYield * 100).toFixed(2) + '%' : '--') + '</b>' +
         '<em>ROE ' + (v && v.roe !== null && v.roe !== undefined ? (v.roe * 100).toFixed(0) + '%' : '--') + '</em></div>' +
         '</div>' +
         (v ? '<div class="wc-mark">' +
