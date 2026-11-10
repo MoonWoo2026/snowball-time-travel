@@ -703,6 +703,7 @@
             '<div class="fld thin"><span class="fld-t">每次买入金额（CNY）</span>' + stepperHTML('stValAmount', 50000, 1000) + '</div>' +
             '<div class="fld thin"><span class="fld-t">买入间隔（天）</span>' + stepperHTML('stValGap', 30, 5) + '</div>' +
           '</div>' +
+          '<label class="chk-inline"><input type="checkbox" id="stValAll"> 全仓买入：触发时用账户全部可用资金（当天多只触发则等分）</label>' +
           '<div class="fld"><span class="fld-t">卖出条件 <i class="k tiny">留空=不卖，长期持有</i></span>' +
             '<div class="cond-list">' +
               condRow('stS', 'pb', 'PB 市净率', '≥', 2.0, false, 0.1) +
@@ -803,6 +804,15 @@
     }
     wireQuick('stAmtQuick', 'stAmount');
     wireQuick('stTotalQuick', 'stDcaTotal');
+    // 全仓买入：勾上后金额输入失效
+    var allBox = mask.querySelector('#stValAll');
+    function syncValAll() {
+      var on = allBox.checked;
+      mask.querySelectorAll('#stValAmount, .stepper button[data-for="stValAmount"]').forEach(function (el) { el.disabled = on; });
+      mask.querySelector('#stValAmount').closest('.fld').style.opacity = on ? .45 : 1;
+    }
+    allBox.addEventListener('change', syncValAll);
+    syncValAll();
 
     mask.querySelector('#stCancel').onclick = function () { mask.remove(); };
     mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
@@ -847,6 +857,7 @@
         plan.valConds = buyConds;
         plan.valLogic = mask.querySelector('#stBuyLogic button.on').getAttribute('data-l');
         plan.valAmount = +mask.querySelector('#stValAmount').value || 20000;
+        plan.valAll = mask.querySelector('#stValAll').checked;
         plan.valGapDays = +mask.querySelector('#stValGap').value || 30;
         plan.valSellConds = readConds('stS');
         plan.valSellLogic = mask.querySelector('#stSellLogic button.on').getAttribute('data-l');

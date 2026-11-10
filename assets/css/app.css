@@ -516,6 +516,8 @@ input,select{font-family:inherit}
 .strat-modal .logic-line{display:flex;align-items:center;gap:8px}
 .strat-modal .logic-line > span{flex:none;font-size:10.5px;color:var(--faint)}
 .strat-modal .logic-line .seg{margin-bottom:0}
+.strat-modal .chk-inline{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:11px;color:var(--ink);cursor:pointer;line-height:1.5}
+.strat-modal .chk-inline input{width:13px;height:13px;min-width:13px;padding:0;margin:0;accent-color:var(--accent);cursor:pointer}
 
 /* ---------- 存档：时间栏按钮与弹窗 ---------- */
 .tb-save{display:flex;gap:6px;align-items:center;flex:0 0 auto}

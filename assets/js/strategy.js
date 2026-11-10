@@ -15,6 +15,7 @@
  *   valConds: [{ m:'pb', v:1.0 }, { m:'dy', v:4.0 }], // 买入条件：m=pb|pe|dy，dy 用百分比
  *   valLogic: 'any' | 'all',      // 任一满足 / 全部满足
  *   valAmount: 50000,             // 每次买入金额
+ *   valAll: false,                // 全仓：触发时用全部可用现金（多只触发则等分）
  *   valSellConds: [{ m:'pb', v:2.0 }], // 卖出条件（可选，留空=不卖）
  *   valSellLogic: 'any' | 'all',
  *   // 旧版单指标写法仍兼容：valMetric + valBuy + valSell
@@ -337,6 +338,7 @@
 
       // 估值触发（支持 PB / PE / 股息率 多条件，任一或全部满足）
       if (plan.type === 'value') {
+        var hits = [];
         codes.forEach(function (c) {
           var vs = vsMap[c];
           if (!vs || !vs.length) return;
@@ -355,9 +357,14 @@
           var gap = plan.valGapDays == null ? 30 : plan.valGapDays;
           if (buyConds.length && (!lastBuy[c] || dayDiff(lastBuy[c], d) >= gap) &&
               matchConds(buyConds, buyLogic, buyHit, v)) {
-            doBuy(c, plan.valAmount, d);
+            hits.push(c);
           }
         });
+        if (hits.length) {
+          // 全仓：当天触发的标的等分可用现金；否则每只按固定金额
+          var each = plan.valAll ? cash / hits.length : plan.valAmount;
+          hits.forEach(function (c) { doBuy(c, each, d); });
+        }
       }
 
       equity.push({ d: d, v: +portfolioValue(d).toFixed(2) });

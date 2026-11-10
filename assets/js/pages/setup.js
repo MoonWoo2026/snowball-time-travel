@@ -171,7 +171,7 @@
       if (p.rebalPeriod) s += '，' + (p.rebalPeriod === 'month' ? '每月' : p.rebalPeriod === 'quarter' ? '每季度' : '每年') + '再平衡';
       return s;
     }
-    var s = condText(p.valConds, p.valLogic, false) + ' 买入 ¥' + (p.valAmount || 0).toLocaleString();
+    var s = condText(p.valConds, p.valLogic, false) + (p.valAll ? ' 全仓买入' : ' 买入 ¥' + (p.valAmount || 0).toLocaleString());
     if (p.valSellConds && p.valSellConds.length) s += ' / ' + condText(p.valSellConds, p.valSellLogic, true) + ' 卖出';
     return s;
   }
@@ -331,6 +331,7 @@
             '<div class="fld thin"><span class="fld-t">每次买入金额（CNY）</span>' + stepperHTML('ptValAmount', plan.valAmount||50000, 1000, 0) + '</div>' +
             '<div class="fld thin"><span class="fld-t">买入间隔（天）</span>' + stepperHTML('ptValGap', plan.valGapDays==null?30:plan.valGapDays, 5, 1) + '</div>' +
           '</div>' +
+          '<label class="chk-inline"><input type="checkbox" id="ptValAll"' + (plan.valAll?' checked':'') + '> 全仓买入：触发时用账户全部可用资金（当天多只触发则等分）</label>' +
           '<div class="fld"><span class="fld-t">卖出条件 <i class="k tiny">留空=不卖，长期持有</i></span>' +
             '<div class="cond-list">' +
               condRowHTML('ptS', 'pb', 'PB 市净率', '≥', sellD.pb, sellOn.pb, 0.1) +
@@ -429,6 +430,15 @@
     }
     wireQuick('ptAmtQuick', 'ptAmount');
     wireQuick('ptTotalQuick', 'ptDcaTotal');
+    // 全仓买入：勾上后金额输入失效
+    var allBox = mask.querySelector('#ptValAll');
+    function syncValAll() {
+      var on = allBox.checked;
+      mask.querySelectorAll('#ptValAmount, .stepper button[data-for="ptValAmount"]').forEach(function (el) { el.disabled = on; });
+      mask.querySelector('#ptValAmount').closest('.fld').style.opacity = on ? .45 : 1;
+    }
+    allBox.addEventListener('change', syncValAll);
+    syncValAll();
 
     mask.querySelector('#ptCancel').onclick = function () { mask.remove(); };
     mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
@@ -466,6 +476,7 @@
         plan.valConds = buyConds;
         plan.valLogic = mask.querySelector('#ptBuyLogic button.on').getAttribute('data-l');
         plan.valAmount = +mask.querySelector('#ptValAmount').value || 20000;
+        plan.valAll = mask.querySelector('#ptValAll').checked;
         plan.valGapDays = +mask.querySelector('#ptValGap').value || 30;
         plan.valSellConds = readConds('ptS');
         plan.valSellLogic = mask.querySelector('#ptSellLogic button.on').getAttribute('data-l');
