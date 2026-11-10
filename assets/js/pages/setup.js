@@ -167,6 +167,7 @@
     if (p.type === 'dca') {
       var t = p.dcaPeriod === 'week' ? '每周' : p.dcaPeriod === 'month' ? '每月' : '每季度';
       var s = t + '定投 ¥' + (p.dcaAmount || 0).toLocaleString() + '，等权投 ' + codes + ' 只';
+      if (p.dcaTotal > 0) s += '，总额 ¥' + p.dcaTotal.toLocaleString() + ' 投完即止';
       if (p.rebalPeriod) s += '，' + (p.rebalPeriod === 'month' ? '每月' : p.rebalPeriod === 'quarter' ? '每季度' : '每年') + '再平衡';
       return s;
     }
@@ -200,7 +201,7 @@
   function newPlan() {
     return {
       type: 'dca', start: $('startDate').value, capital: getCapital(), codes: watch.slice(),
-      dcaPeriod: 'month', dcaAmount: 20000, rebalPeriod: null,
+      dcaPeriod: 'month', dcaAmount: 20000, dcaTotal: 0, rebalPeriod: null,
       valConds: [{ m: 'pb', v: 1.0 }], valLogic: 'any', valAmount: 50000, valGapDays: 30,
       valSellConds: [], valSellLogic: 'any',
       tpPct: null, tpMode: 'full', slPct: null, holdDays: null,
@@ -300,6 +301,14 @@
             '<span class="quick-amt" id="ptAmtQuick">' +
               [2000,10000,20000,50000,100000].map(function (v) {
                 return '<button type="button" data-v="' + v + '">' + (v>=10000 ? (v/10000)+' 万' : (v/1000)+' 千') + '</button>';
+              }).join('') +
+            '</span>' +
+          '</div>' +
+          '<div class="fld thin"><span class="fld-t">定投总额（CNY）<i class="k tiny">投完即止，不再有新增买入</i></span>' +
+            stepperHTML('ptDcaTotal', plan.dcaTotal || plan.capital || 0, 50000, 0) +
+            '<span class="quick-amt" id="ptTotalQuick">' +
+              [100000,200000,500000,1000000].map(function (v) {
+                return '<button type="button" data-v="' + v + '">' + (v/10000) + ' 万</button>';
               }).join('') +
             '</span>' +
           '</div>' +
@@ -409,13 +418,17 @@
       };
     });
     // 快捷金额
-    mask.querySelectorAll('#ptAmtQuick button').forEach(function (b) {
-      b.onclick = function () {
-        mask.querySelector('#ptAmount').value = b.getAttribute('data-v');
-        mask.querySelectorAll('#ptAmtQuick button').forEach(function (x) { x.classList.remove('on'); });
-        b.classList.add('on');
-      };
-    });
+    function wireQuick(boxId, inputId) {
+      mask.querySelectorAll('#' + boxId + ' button').forEach(function (b) {
+        b.onclick = function () {
+          mask.querySelector('#' + inputId).value = b.getAttribute('data-v');
+          mask.querySelectorAll('#' + boxId + ' button').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+        };
+      });
+    }
+    wireQuick('ptAmtQuick', 'ptAmount');
+    wireQuick('ptTotalQuick', 'ptDcaTotal');
 
     mask.querySelector('#ptCancel').onclick = function () { mask.remove(); };
     mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
@@ -435,6 +448,7 @@
       if (t === 'dca') {
         plan.dcaPeriod = mask.querySelector('#ptPeriod button.on').getAttribute('data-p');
         plan.dcaAmount = +mask.querySelector('#ptAmount').value || 10000;
+        plan.dcaTotal = +mask.querySelector('#ptDcaTotal').value || 0;
         plan.rebalPeriod = mask.querySelector('#ptRebal').value || null;
       } else {
         function readConds(pfx) {

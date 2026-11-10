@@ -9,6 +9,7 @@
  *   // DCA 参数
  *   dcaPeriod: 'week' | 'month' | 'quarter',
  *   dcaAmount: 20000,
+ *   dcaTotal: 500000,      // 定投总额（真实资金上限），投完即止；不填则用 capital
  *   rebalPeriod: null | 'month' | 'quarter' | 'year',  // 定期再平衡
  *   // 价值触发参数
  *   valConds: [{ m:'pb', v:1.0 }, { m:'dy', v:4.0 }], // 买入条件：m=pb|pe|dy，dy 用百分比
@@ -74,34 +75,33 @@
       return L + op + c.v + (c.m === 'dy' ? '%' : '');
     }).join(logic === 'all' ? ' 且 ' : ' 或 ');
   }
+  /* 下一个定投日：严格晚于 date，避免同一期连买两天 */
   function snapNextFridayOrFirst(date, kind) {
     var d = new Date(date + 'T00:00:00Z');
     if (kind === 'week') {
       while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);
+      if (d.toISOString().slice(0, 10) <= date) d.setUTCDate(d.getUTCDate() + 7);
     } else if (kind === 'month') {
       d.setUTCDate(1);
-      if (d.toISOString().slice(0, 10) < date) {
-        d.setUTCMonth(d.getUTCMonth() + 1);
-        d.setUTCDate(1);
-      }
+      d.setUTCMonth(d.getUTCMonth() + 1);
     } else if (kind === 'quarter') {
-      var m = d.getUTCMonth();
-      var q = Math.floor(m / 3) * 3;
-      d.setUTCMonth(q); d.setUTCDate(1);
-      if (d.toISOString().slice(0, 10) < date) {
-        d.setUTCMonth(q + 3); d.setUTCDate(1);
-      }
+      d.setUTCMonth(Math.floor(d.getUTCMonth() / 3) * 3);
+      d.setUTCDate(1);
+      d.setUTCMonth(d.getUTCMonth() + 3);
     } else if (kind === 'year') {
-      d = new Date(date + 'T00:00:00Z');
       d.setUTCMonth(0); d.setUTCDate(1);
-      if (d.toISOString().slice(0, 10) < date) d.setUTCFullYear(d.getUTCFullYear() + 1);
+      d.setUTCFullYear(d.getUTCFullYear() + 1);
     }
     return d.toISOString().slice(0, 10);
   }
 
   function run(plan) {
     var codes = plan.codes.slice();
-    var cash = plan.capital;
+    /* 定投总额：真实资金有限，投到这个数就不再买；收益也按这个数算 */
+    var budget = plan.type === 'dca' ? (plan.dcaTotal > 0 ? plan.dcaTotal : plan.capital) : plan.capital;
+    var cash = budget;
+    var spent = 0; // 已投入（含费用）
+    var buckets = {}; // 定投：每只标的攒钱买整手
     var pos = {}; // code → { shares, cost, openedAt, tpTier:0 }
     var trades = [];
     var equity = [];
@@ -150,7 +150,7 @@
       codes.forEach(function (c) {
         var evs = M.stock(c).events || [];
         evs.forEach(function (ev) {
-          if (ev.ex !== date || !ev.dps) return;
+          if (ev.date !== date || !ev.dps) return;
           var pos0 = pos[c];
           if (!pos0 || !pos0.shares) return;
           var st = M.stock(c);
@@ -206,6 +206,7 @@
       pos[code] = p;
       trades.push({ date: date, code: code, name: st.name, side: 'buy', qty: qty, price: +r.close.toFixed(3), amount: +(qty * unit).toFixed(2), fee: +fee.cny.toFixed(2) });
       lastBuy[code] = date;
+      return need;
     }
 
     function doSellAll(code, date, reason) {
@@ -317,10 +318,20 @@
         nextRebal = snapNextFridayOrFirst(d, plan.rebalPeriod);
       }
 
-      // 定投触发
+      // 定投触发：按总额封顶，投完就不再有新增买入
       if (plan.type === 'dca' && d >= nextDca) {
-        var per = plan.dcaAmount / codes.length;
-        codes.forEach(function (c) { doBuy(c, per, d); });
+        var left = budget - spent;
+        if (left > 0) {
+          var per = Math.min(plan.dcaAmount, left) / codes.length;
+          codes.forEach(function (c) {
+            // 每只标的各有蓄水池：不够一手就攒着，够了一手再买
+            buckets[c] = (buckets[c] || 0) + per;
+            var amt = Math.min(buckets[c], budget - spent);
+            if (amt <= 0) return;
+            var used = doBuy(c, amt, d) || 0;
+            if (used > 0) { spent += used; buckets[c] -= used; }
+          });
+        }
         nextDca = snapNextFridayOrFirst(d, plan.dcaPeriod);
       }
 
@@ -352,7 +363,7 @@
       equity.push({ d: d, v: +portfolioValue(d).toFixed(2) });
     });
 
-    return { equity: equity, trades: trades, cash: cash, pos: pos, divs: divs };
+    return { equity: equity, trades: trades, cash: cash, pos: pos, divs: divs, startCash: budget, spent: spent };
   }
 
   global.SB = global.SB || {};

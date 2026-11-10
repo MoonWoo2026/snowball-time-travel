@@ -585,7 +585,8 @@
     if (!STRATS.length) { el.innerHTML = ''; return; }
     el.innerHTML = STRATS.map(function (s, i) {
       var r = s.result;
-      var ret = r.equity.length ? (r.equity[r.equity.length - 1].v / s.plan.capital - 1) : 0;
+      var base = r.startCash || s.plan.capital;
+      var ret = r.equity.length ? (r.equity[r.equity.length - 1].v / base - 1) : 0;
       var cagr = days(s.plan.start, s.plan.end) > 30 ? Math.pow(1 + ret, 365 / days(s.plan.start, s.plan.end)) - 1 : null;
       return '<div class="strat-chip" style="border-color:' + CURVE_COLORS[i % CURVE_COLORS.length] + '">' +
         '<span class="sw" style="background:' + CURVE_COLORS[i % CURVE_COLORS.length] + '"></span>' +
@@ -672,6 +673,14 @@
             '<span class="quick-amt" id="stAmtQuick">' +
               [2000,10000,20000,50000,100000].map(function (v) {
                 return '<button type="button" data-v="' + v + '">' + (v>=10000 ? (v/10000)+' 万' : (v/1000)+' 千') + '</button>';
+              }).join('') +
+            '</span>' +
+          '</div>' +
+          '<div class="fld thin"><span class="fld-t">定投总额（CNY）<i class="k tiny">投完即止，不再有新增买入</i></span>' +
+            stepperHTML('stDcaTotal', S.initCash || 200000, 50000) +
+            '<span class="quick-amt" id="stTotalQuick">' +
+              [100000,200000,500000,1000000].map(function (v) {
+                return '<button type="button" data-v="' + v + '">' + (v/10000) + ' 万</button>';
               }).join('') +
             '</span>' +
           '</div>' +
@@ -783,13 +792,17 @@
         inp.value = Math.max(0, Math.round(v * 100) / 100);
       };
     });
-    mask.querySelectorAll('#stAmtQuick button').forEach(function (b) {
-      b.onclick = function () {
-        mask.querySelector('#stAmount').value = b.getAttribute('data-v');
-        mask.querySelectorAll('#stAmtQuick button').forEach(function (x) { x.classList.remove('on'); });
-        b.classList.add('on');
-      };
-    });
+    function wireQuick(boxId, inputId) {
+      mask.querySelectorAll('#' + boxId + ' button').forEach(function (b) {
+        b.onclick = function () {
+          mask.querySelector('#' + inputId).value = b.getAttribute('data-v');
+          mask.querySelectorAll('#' + boxId + ' button').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+        };
+      });
+    }
+    wireQuick('stAmtQuick', 'stAmount');
+    wireQuick('stTotalQuick', 'stDcaTotal');
 
     mask.querySelector('#stCancel').onclick = function () { mask.remove(); };
     mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
@@ -812,6 +825,7 @@
       if (t === 'dca') {
         plan.dcaPeriod = mask.querySelector('#stPeriod button.on').getAttribute('data-p');
         plan.dcaAmount = +mask.querySelector('#stAmount').value || 10000;
+        plan.dcaTotal = +mask.querySelector('#stDcaTotal').value || 0;
         var rb = mask.querySelector('#stRebal').value;
         plan.rebalPeriod = rb || null;
         if (!mask.querySelector('#stName').value.trim()) {
