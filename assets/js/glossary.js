@@ -32,7 +32,7 @@ var GLOSSARY = {
   var tEnter = null, tLeave = null;
 
   function closeAll() {
-    document.querySelectorAll('.term.pop-on').forEach(function (e) { e.classList.remove('pop-on'); });
+    document.querySelectorAll('.gloss.pop-on').forEach(function (e) { e.classList.remove('pop-on'); });
     OPEN = null;
     clearTimeout(tEnter); clearTimeout(tLeave);
   }
@@ -45,7 +45,7 @@ var GLOSSARY = {
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.term[data-term]').forEach(function (el) {
+    document.querySelectorAll('.gloss[data-term]').forEach(function (el) {
       var key = el.getAttribute('data-term');
       var html = GLOSSARY[key];
       if (!html) return;

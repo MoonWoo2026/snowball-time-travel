@@ -56,9 +56,9 @@
 
     $('kpis').innerHTML = [
       ['期末总资产', U.money(m.total), S.date, null],
-      ['<span class="term" data-term="total_ret">累计收益<span class="info-i">ⓘ</span></span>', U.pct(m.ret), '本金 ' + U.money(S.initCash), 'ret'],
-      ['<span class="term" data-term="cagr">年化收益<span class="info-i">ⓘ</span></span>', m.cagr === null ? '--' : U.pct(m.cagr), m.days + ' 天', 'cagr'],
-      ['<span class="term" data-term="mdd">最大回撤<span class="info-i">ⓘ</span></span>', (Math.abs(dd) * 100).toFixed(2) + '%', '按日资产曲线', 'dd'],
+      ['<span class="gloss" data-term="total_ret">累计收益<span class="info-i">ⓘ</span></span>', U.pct(m.ret), '本金 ' + U.money(S.initCash), 'ret'],
+      ['<span class="gloss" data-term="cagr">年化收益<span class="info-i">ⓘ</span></span>', m.cagr === null ? '--' : U.pct(m.cagr), m.days + ' 天', 'cagr'],
+      ['<span class="gloss" data-term="mdd">最大回撤<span class="info-i">ⓘ</span></span>', (Math.abs(dd) * 100).toFixed(2) + '%', '按日资产曲线', 'dd'],
       ['累计分红', U.money(m.div), '税后 ' + S.divs.length + ' 笔', null]
     ].map(function (k) {
       var color = k[3] === 'ret' ? U.cls(m.ret) : (k[3] === 'cagr' ? U.cls(m.cagr || 0) : (k[3] === 'dd' && dd < 0 ? 'down' : ''));
@@ -385,9 +385,9 @@
       ['平均股票仓位', (avgStock * 100).toFixed(1) + '%', '全程'],
       ['建仓后仓位', (avgPost * 100).toFixed(1) + '%', '首次买入起'],
       ['最高单票权重', (maxW * 100).toFixed(1) + '%', maxWName || '--'],
-      ['<span class="term" data-term="turnover">年化换手率<span class="info-i">ⓘ</span></span>', (yearTurnover * 100).toFixed(0) + '%', S.trades.length + ' 笔'],
-      ['<span class="term" data-term="winrate">已实现胜率<span class="info-i">ⓘ</span></span>', winRate === null ? '--' : (winRate * 100).toFixed(0) + '%', rep.rounds.length + ' 次清仓'],
-      ['<span class="term" data-term="pl_ratio">盈亏比<span class="info-i">ⓘ</span></span>', pf === null ? '--' : (pf === Infinity ? '∞' : pf.toFixed(2)), '平均盈利 / 平均亏损'],
+      ['<span class="gloss" data-term="turnover">年化换手率<span class="info-i">ⓘ</span></span>', (yearTurnover * 100).toFixed(0) + '%', S.trades.length + ' 笔'],
+      ['<span class="gloss" data-term="winrate">已实现胜率<span class="info-i">ⓘ</span></span>', winRate === null ? '--' : (winRate * 100).toFixed(0) + '%', rep.rounds.length + ' 次清仓'],
+      ['<span class="gloss" data-term="pl_ratio">盈亏比<span class="info-i">ⓘ</span></span>', pf === null ? '--' : (pf === Infinity ? '∞' : pf.toFixed(2)), '平均盈利 / 平均亏损'],
       ['平均持有', holdDays === null ? '--' : holdDays + ' 天', '已清仓回合'],
       ['期末现金占比', (finalCashRatio * 100).toFixed(1) + '%', U.money(m.cash)]
     ];
