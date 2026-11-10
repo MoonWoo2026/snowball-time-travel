@@ -440,6 +440,9 @@ input,select{font-family:inherit}
 .strat-modal .seg{margin-bottom:10px}
 .strat-modal .s-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .strat-modal .s-row label{margin-bottom:10px}
+.strat-modal .sell-block{background:var(--bg2);border-radius:6px;padding:10px 12px;margin:12px 0 8px;border:1px dashed var(--rule)}
+.strat-modal .sell-head{font-size:11px;color:var(--accent);font-weight:600;margin-bottom:8px;letter-spacing:.5px}
+.strat-modal .k.tiny{font-size:10px;color:var(--faint);display:block;margin-top:2px}
 .strat-modal .s-note{font-size:10.5px;color:var(--faint);margin:6px 0 14px;padding:7px 10px;background:var(--bg2);border-radius:5px;border-left:2px solid var(--accent2-soft)}
 .strat-modal .m-act{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 .strat-modal .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;padding:6px 16px;border-radius:6px;cursor:pointer}

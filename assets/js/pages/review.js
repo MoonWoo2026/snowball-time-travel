@@ -604,6 +604,15 @@
             '</select>' +
           '</label>' +
           '<label>每期总金额（CNY）<input id="stAmount" type="number" value="20000" step="1000"></label>' +
+          '<label class="thin">定期再平衡 ' +
+            '<select id="stRebal" style="width:110px">' +
+              '<option value="">关闭</option>' +
+              '<option value="month">每月</option>' +
+              '<option value="quarter" selected>每季度</option>' +
+              '<option value="year">每年</option>' +
+            '</select>' +
+            '<span class="k tiny">把持仓卖回到等权重</span>' +
+          '</label>' +
         '</div>' +
         '<div class="s-row st-value" style="display:none">' +
           '<label>估值指标' +
@@ -614,10 +623,26 @@
           '</label>' +
           '<label>买入阈值 ≤ <input id="stBuy" type="number" value="1.0" step="0.1"></label>' +
           '<label>每次买入金额 <input id="stValAmount" type="number" value="50000" step="1000"></label>' +
-          '<label class="thin">止盈阈值（PB/PE ≥）<input id="stSell" type="number" placeholder="留空=只买不卖"></label>' +
+          '<label class="thin">估值止盈（≥ 全清）<input id="stValSell" type="number" placeholder="留空=关闭"></label>' +
         '</div>' +
+
+        '<div class="sell-block">' +
+          '<div class="sell-head">卖出规则（留空=不触发）</div>' +
+          '<div class="s-row">' +
+            '<label>目标收益率止盈 <input id="stTpPct" type="number" step="5" placeholder="如 30 → 30%"></label>' +
+            '<label>止盈方式' +
+              '<select id="stTpMode">' +
+                '<option value="full" selected>一次性全清</option>' +
+                '<option value="part">分批（1/3 起步）</option>' +
+              '</select>' +
+            '</label>' +
+            '<label class="thin">止损（浮亏 ≥）<input id="stSlPct" type="number" step="5" placeholder="如 15 → 15%"></label>' +
+            '<label class="thin">持有期到期（天）<input id="stHoldDays" type="number" step="30" placeholder="如 365"></label>' +
+          '</div>' +
+        '</div>' +
+
         '<div class="s-row"><label>初始本金（默认和当前复盘一致）<input id="stCapital" type="number" value="' + S.initCash + '" step="10000"></label></div>' +
-        '<p class="s-note">独立账户，和你手动操作完全分开。参数相同、数据相同，这样对比才公平。</p>' +
+        '<p class="s-note">独立账户，和你手动操作完全分开。参数相同、数据相同，这样对比才公平。<br>定投默认关闭止盈，会一直持有；开启后浮盈达标先卖，剩余现金继续投。</p>' +
         '<div class="m-act">' +
           '<button class="btn ghost" id="stCancel">取消</button>' +
           '<button class="btn" id="stAdd">添加</button>' +
@@ -655,15 +680,25 @@
       if (t === 'dca') {
         plan.dcaPeriod = mask.querySelector('#stPeriod').value;
         plan.dcaAmount = +mask.querySelector('#stAmount').value || 10000;
-        // 自动填好名
-        if (!STRATS.length) mask.querySelector('#stName').value = plan.name = plan.dcaPeriod === 'week' ? '每周定投 ¥' + plan.dcaAmount.toLocaleString() : plan.dcaPeriod === 'month' ? '每月定投 ¥' + plan.dcaAmount.toLocaleString() : '每季度定投 ¥' + plan.dcaAmount.toLocaleString();
+        var rb = mask.querySelector('#stRebal').value;
+        plan.rebalPeriod = rb || null;
+        if (!STRATS.length) mask.querySelector('#stName').value = plan.name = (plan.dcaPeriod === 'week' ? '每周定投 ¥' : plan.dcaPeriod === 'month' ? '每月定投 ¥' : '每季度定投 ¥') + plan.dcaAmount.toLocaleString();
       } else {
         plan.valMetric = mask.querySelector('#stMetric').value;
         plan.valBuy = +mask.querySelector('#stBuy').value || 1;
         plan.valAmount = +mask.querySelector('#stValAmount').value || 20000;
-        var sv = mask.querySelector('#stSell').value;
-        plan.valSell = sv ? +sv : null;
+        var vs = mask.querySelector('#stValSell').value;
+        plan.valSell = vs ? +vs : null;
       }
+      // 通用卖出
+      var tp = mask.querySelector('#stTpPct').value;
+      var sl = mask.querySelector('#stSlPct').value;
+      var hd = mask.querySelector('#stHoldDays').value;
+      plan.tpPct = tp ? +tp / 100 : null;
+      plan.tpMode = mask.querySelector('#stTpMode').value;
+      plan.slPct = sl ? +sl / 100 : null;
+      plan.holdDays = hd ? +hd : null;
+
       try {
         var r = SB.strategy.run(plan);
         var eq = stratEquity(plan);
