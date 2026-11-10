@@ -55,7 +55,7 @@
       chart.resize(); growth.resize(); curve.resize();
     });
   }).catch(function (e) {
-    U.toast('数据加载失败：' + e.message);
+    U.loadFail(e);
   });
 
   /* ---------- 渲染 ---------- */
@@ -677,7 +677,7 @@
       var b = e.target.closest('button');
       if (!b) return;
       state.mode = b.getAttribute('data-m');
-      [].forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
+      this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
       renderChart();
     });
 

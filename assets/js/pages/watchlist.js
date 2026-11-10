@@ -29,7 +29,7 @@
     render();
     bind();
   }).catch(function (e) {
-    U.toast('数据加载失败：' + e.message);
+    U.loadFail(e);
   });
 
   function render() {

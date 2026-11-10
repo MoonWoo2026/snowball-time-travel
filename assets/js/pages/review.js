@@ -34,7 +34,7 @@
     renderStratList(); // 预设策略 chip 也显示
     window.addEventListener('resize', function () { rvCurve.resize(); rvMark.resize(); });
   }).catch(function (e) {
-    U.toast('数据加载失败：' + e.message);
+    U.loadFail(e);
   });
 
   function maxDrawdown(eq) {

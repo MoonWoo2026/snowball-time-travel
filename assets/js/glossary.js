@@ -69,6 +69,8 @@ var GLOSSARY = {
         }, LEAVE_D);
       });
       el.addEventListener('click', function (e) {
+        // 术语包着真实按钮时（如前复权/不复权切换），点击要交给按钮自己处理
+        if (e.target.closest('button')) return;
         e.stopPropagation();
         if (OPEN === el) { el.classList.remove('pop-on'); OPEN = null; }
         else { show(el); }

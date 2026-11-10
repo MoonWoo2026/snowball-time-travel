@@ -6,21 +6,55 @@ SB.market = (function () {
   var fxCache = {};
   var idxBars = [];
 
+  /* 单文件拉取：失败自动重试，兼容移动端偶发断流；非 2xx 直接报错 */
+  function getJSON(url, tries) {
+    var n = tries == null ? 2 : tries;
+    return fetch(url, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error(url + ' → HTTP ' + r.status);
+      return r.json();
+    }).catch(function (e) {
+      if (n <= 0) throw e;
+      return new Promise(function (res) { setTimeout(res, 320); })
+        .then(function () { return getJSON(url, n - 1); });
+    });
+  }
+
   function loadOne(code) {
-    return fetch('data/' + code + '.json', { cache: 'no-cache' }).then(function (r) { return r.json(); });
+    return getJSON('data/' + code + '.json', 2);
   }
 
   function loadIndex() {
-    return fetch('data/index.json', { cache: 'no-cache' }).then(function (r) { return r.json(); })
+    return getJSON('data/index.json', 1)
       .then(function (j) { idxBars = j.SH000001 || []; })
       .catch(function () { idxBars = []; });
   }
 
+  /* 限制并发 5 个，避免移动端一次打 15 个请求导致部分超时 */
+  function loadAll(codes) {
+    var out = new Array(codes.length), i = 0, failed = [];
+    function worker() {
+      if (i >= codes.length) return Promise.resolve();
+      var at = i++;
+      return loadOne(codes[at]).then(function (j) {
+        out[at] = j; return worker();
+      }, function (e) {
+        failed.push(codes[at]);
+        return worker();
+      });
+    }
+    var ws = [];
+    for (var k = 0; k < Math.min(5, codes.length); k++) ws.push(worker());
+    return Promise.all(ws).then(function () {
+      if (failed.length) throw new Error('以下标的行情加载失败：' + failed.join('、'));
+      return out;
+    });
+  }
+
   function load() {
-    return fetch('data/meta.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (m) {
+    return getJSON('data/meta.json', 2).then(function (m) {
       meta = m;
-      var tasks = m.stocks.map(function (s) { return loadOne(s.code); });
-      return Promise.all(tasks.concat([loadIndex()]));
+      var codes = m.stocks.map(function (s) { return s.code; });
+      return Promise.all([loadAll(codes), loadIndex()]).then(function (r) { return r[0]; });
     }).then(function (arr) {
       arr.forEach(function (st) { if (st && st.code) { prepare(st); stocks[st.code] = st; } });
       buildFx();
