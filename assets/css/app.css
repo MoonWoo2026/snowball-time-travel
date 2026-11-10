@@ -413,12 +413,37 @@ input,select{font-family:inherit}
   .review-head h1{font-size:21px}
 }
 @media print{
-  .site-head,.dock,.rv-actions,.rv-foot{display:none}
+  .site-head,.dock,.rv-actions,.rv-foot,.curve-head button,.strat-list{display:none}
   body{background:#fff}
   .rv-card,.kpi{break-inside:avoid}
   .review{padding:0}
   #rvCurve{height:400px}
 }
+
+/* ---------- 自动策略弹窗与 chip ---------- */
+.curve-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.curve-head h3{margin:0;font-size:13px;color:var(--accent);letter-spacing:.2px}
+.strat-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.strat-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid;border-radius:14px;padding:3px 9px 3px 7px;background:#fff;font-size:11px;font-family:var(--mono)}
+.strat-chip .sw{width:10px;height:10px;border-radius:2px;flex:0 0 10px}
+.strat-chip .sn{color:var(--ink);font-weight:500}
+.strat-chip .sr{color:var(--faint)}
+.strat-chip .sx{border:0;background:none;color:var(--faint);font-size:13px;padding:0 2px;cursor:pointer;line-height:1}
+.strat-chip .sx:hover{color:var(--up)}
+.strat-modal{width:min(520px,94vw);max-height:88vh;overflow:auto;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:18px 20px 14px;box-shadow:0 20px 48px rgba(0,0,0,.18);font-size:12px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%)}
+.strat-modal h4{margin:0 0 14px;font-size:14px;color:var(--accent)}
+.strat-modal label{display:block;font-size:11px;color:var(--muted);margin-bottom:12px}
+.strat-modal label > span{display:block;margin-bottom:6px}
+.strat-modal label.thin{margin-bottom:12px}
+.strat-modal input,.strat-modal select{width:100%;border:1px solid var(--rule);border-radius:5px;padding:6px 9px;font-family:var(--mono);font-size:12px;background:#fff;color:var(--ink);box-sizing:border-box}
+.strat-modal input:focus,.strat-modal select:focus{outline:none;border-color:var(--accent)}
+.strat-modal .seg{margin-bottom:10px}
+.strat-modal .s-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.strat-modal .s-row label{margin-bottom:10px}
+.strat-modal .s-note{font-size:10.5px;color:var(--faint);margin:6px 0 14px;padding:7px 10px;background:var(--bg2);border-radius:5px;border-left:2px solid var(--accent2-soft)}
+.strat-modal .m-act{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.strat-modal .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;padding:6px 16px;border-radius:6px;cursor:pointer}
+.strat-modal .btn.ghost{background:#fff;color:var(--accent);border-color:var(--rule)}
 
 /* ---------- 存档：时间栏按钮与弹窗 ---------- */
 .tb-save{display:flex;gap:6px;align-items:center;flex:0 0 auto}

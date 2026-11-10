@@ -71,12 +71,29 @@
       E.clear();
       location.href = 'setup.html';
     };
+    $('openStrat').onclick = openStratDialog;
   }
 
   var KIND = { open: '建仓', add: '加仓', cut: '减仓', close: '清仓' };
+  var STRATS = []; // 已添加的自动策略 [{plan, result}]
+  var CURVE_COLORS = ['#6B8FB8', '#8B6E5A', '#4A8F6A', '#A57989']; // 蓝、棕、绿、粉（避开深蓝#1E3A5F和铜金#B07A2E）
 
   function days(a, b) {
     return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000));
+  }
+
+  function stratEquity(plan) {
+    // 把 strategy 的 equity 对齐到用户曲线的交易日列表
+    var r = SB.strategy.run(plan);
+    var idx = {};
+    r.equity.forEach(function (p, i) { idx[p.d] = i; });
+    var out = [];
+    var last = null;
+    S.equity().forEach(function (p) {
+      if (idx[p.d] !== undefined) last = r.equity[idx[p.d]].v;
+      out.push(last === null ? null : last);
+    });
+    return out;
   }
 
   /* 回放成交：区分建仓/加仓/减仓/清仓，并按移动加权成本算出每笔已实现盈亏 */
@@ -132,6 +149,17 @@
     cats.forEach(function (d, i) { idx[d] = i; });
     var nav = pts.map(function (x) { return x.v; });
     var bench = pts.map(function (x) { return benchAt(x.d); });
+
+    // 策略曲线：动态拼进 series
+    var stratSeries = STRATS.slice(0, 4).map(function (s, i) {
+      return {
+        name: s.plan.name, type: 'line', xAxisIndex: 0, yAxisIndex: 0,
+        data: s.equity, symbol: 'none',
+        lineStyle: { width: 1.3, color: CURVE_COLORS[i % CURVE_COLORS.length], type: 'solid' }
+      };
+    });
+    var legendData = ['我的账户', '等权买入持有'].concat(STRATS.slice(0, 4).map(function (s) { return s.plan.name; }))
+      .concat(['买卖点', '加仓', '减仓']);
 
     var flowIn = cats.map(function () { return 0; });
     var flowOut = cats.map(function () { return 0; });
@@ -196,7 +224,7 @@
       legend: {
         top: 0, right: 0, icon: 'roundRect', itemWidth: 9, itemHeight: 9,
         textStyle: { fontSize: 10, color: C.muted },
-        data: ['我的账户', '等权买入持有', '买卖点', '加仓', '减仓']
+        data: legendData
       },
       xAxis: [
         {
@@ -235,7 +263,8 @@
           name: '等权买入持有', type: 'line', xAxisIndex: 0, yAxisIndex: 0,
           data: bench, symbol: 'none',
           lineStyle: { width: 1.2, color: C.gold, type: 'dashed' }
-        },
+        }
+      ].concat(stratSeries).concat([
         {
           name: '买卖点', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0,
           data: marks, z: 10,
@@ -249,7 +278,7 @@
           name: '减仓', type: 'bar', xAxisIndex: 1, yAxisIndex: 1,
           data: flowOut, barMaxWidth: 8, itemStyle: { color: C.down }
         }
-      ]
+      ])
     }, true);
   }
 
@@ -525,6 +554,127 @@
       rows.push([t.date, t.code, t.name, t.side === 'buy' ? '买入' : '卖出', t.qty, t.price, t.cur, t.fx, t.fee, t.amount]);
     });
     U.download('snowball-trades-' + S.startDate + '-' + S.date + '.csv', '\ufeff' + U.csv(rows), 'text/csv;charset=utf-8');
+  }
+
+  /* ============ 自动策略管理器 ============ */
+
+  function renderStratList() {
+    var el = $('stratList');
+    if (!STRATS.length) { el.innerHTML = ''; return; }
+    el.innerHTML = STRATS.map(function (s, i) {
+      var r = s.result;
+      var ret = r.equity.length ? (r.equity[r.equity.length - 1].v / s.plan.capital - 1) : 0;
+      var cagr = days(s.plan.start, s.plan.end) > 30 ? Math.pow(1 + ret, 365 / days(s.plan.start, s.plan.end)) - 1 : null;
+      return '<div class="strat-chip" style="border-color:' + CURVE_COLORS[i % CURVE_COLORS.length] + '">' +
+        '<span class="sw" style="background:' + CURVE_COLORS[i % CURVE_COLORS.length] + '"></span>' +
+        '<span class="sn">' + s.plan.name + '</span>' +
+        '<span class="sr">' + U.pct(ret) + (cagr === null ? '' : ' · 年化 ' + U.pct(cagr)) + '</span>' +
+        '<button data-ri="' + i + '" class="sx">×</button>' +
+        '</div>';
+    }).join('');
+    el.querySelectorAll('.sx').forEach(function (b) {
+      b.onclick = function () {
+        STRATS.splice(+b.getAttribute('data-ri'), 1);
+        renderStratList();
+        renderCurve(E.equity(), replay());
+      };
+    });
+  }
+
+  function openStratDialog() {
+    if (STRATS.length >= 4) { U.toast('最多叠加 4 条策略'); return; }
+    var mask = document.createElement('div');
+    mask.className = 'mask';
+    mask.innerHTML =
+      '<div class="modal strat-modal">' +
+        '<h4>添加自动策略</h4>' +
+        '<label>策略类型' +
+          '<div class="seg" id="stType">' +
+            '<button data-t="dca" class="on">等权定投</button>' +
+            '<button data-t="value">估值触发</button>' +
+          '</div>' +
+        '</label>' +
+        '<div class="s-row"><label>曲线名 <input id="stName" value="定投 每月 ¥2 万" placeholder="比如 每月定投 2 万"></label></div>' +
+        '<div class="s-row st-dca">' +
+          '<label>周期' +
+            '<select id="stPeriod">' +
+              '<option value="week">每周</option>' +
+              '<option value="month" selected>每月</option>' +
+              '<option value="quarter">每季度</option>' +
+            '</select>' +
+          '</label>' +
+          '<label>每期总金额（CNY）<input id="stAmount" type="number" value="20000" step="1000"></label>' +
+        '</div>' +
+        '<div class="s-row st-value" style="display:none">' +
+          '<label>估值指标' +
+            '<select id="stMetric">' +
+              '<option value="pb" selected>PB（市净率）</option>' +
+              '<option value="pe">PE(TTM)</option>' +
+            '</select>' +
+          '</label>' +
+          '<label>买入阈值 ≤ <input id="stBuy" type="number" value="1.0" step="0.1"></label>' +
+          '<label>每次买入金额 <input id="stValAmount" type="number" value="50000" step="1000"></label>' +
+          '<label class="thin">止盈阈值（PB/PE ≥）<input id="stSell" type="number" placeholder="留空=只买不卖"></label>' +
+        '</div>' +
+        '<div class="s-row"><label>初始本金（默认和当前复盘一致）<input id="stCapital" type="number" value="' + S.initCash + '" step="10000"></label></div>' +
+        '<p class="s-note">独立账户，和你手动操作完全分开。参数相同、数据相同，这样对比才公平。</p>' +
+        '<div class="m-act">' +
+          '<button class="btn ghost" id="stCancel">取消</button>' +
+          '<button class="btn" id="stAdd">添加</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    function updateVisibility() {
+      var t = mask.querySelector('#stType button.on').getAttribute('data-t');
+      mask.querySelector('.st-dca').style.display = t === 'dca' ? '' : 'none';
+      mask.querySelector('.st-value').style.display = t === 'value' ? '' : 'none';
+    }
+    mask.querySelectorAll('#stType button').forEach(function (b) {
+      b.onclick = function () {
+        mask.querySelectorAll('#stType button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        updateVisibility();
+      };
+    });
+    updateVisibility();
+    mask.querySelector('#stCancel').onclick = function () { mask.remove(); };
+    mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
+    mask.onclick = function () { mask.remove(); };
+
+    mask.querySelector('#stAdd').onclick = function () {
+      var t = mask.querySelector('#stType button.on').getAttribute('data-t');
+      var plan = {
+        type: t,
+        start: S.startDate,
+        end: S.date,
+        capital: +mask.querySelector('#stCapital').value || S.initCash,
+        codes: S.watch.slice(),
+        name: mask.querySelector('#stName').value.trim() || (t === 'dca' ? '等权定投' : '估值触发')
+      };
+      if (t === 'dca') {
+        plan.dcaPeriod = mask.querySelector('#stPeriod').value;
+        plan.dcaAmount = +mask.querySelector('#stAmount').value || 10000;
+        // 自动填好名
+        if (!STRATS.length) mask.querySelector('#stName').value = plan.name = plan.dcaPeriod === 'week' ? '每周定投 ¥' + plan.dcaAmount.toLocaleString() : plan.dcaPeriod === 'month' ? '每月定投 ¥' + plan.dcaAmount.toLocaleString() : '每季度定投 ¥' + plan.dcaAmount.toLocaleString();
+      } else {
+        plan.valMetric = mask.querySelector('#stMetric').value;
+        plan.valBuy = +mask.querySelector('#stBuy').value || 1;
+        plan.valAmount = +mask.querySelector('#stValAmount').value || 20000;
+        var sv = mask.querySelector('#stSell').value;
+        plan.valSell = sv ? +sv : null;
+      }
+      try {
+        var r = SB.strategy.run(plan);
+        var eq = stratEquity(plan);
+        STRATS.push({ plan: plan, result: r, equity: eq });
+        renderStratList();
+        renderCurve(E.equity(), replay());
+        mask.remove();
+      } catch (e) {
+        U.toast('策略运行失败：' + e.message);
+      }
+    };
   }
 
 })();
