@@ -477,6 +477,28 @@ input,select{font-family:inherit}
 .strat-modal .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;padding:6px 16px;border-radius:6px;cursor:pointer}
 .strat-modal .btn.ghost{background:#fff;color:var(--accent);border-color:var(--rule)}
 
+/* 策略弹窗：标的勾选 / 步进器 / 快捷金额 */
+.strat-modal .fld{font-size:11px;color:var(--muted);margin-bottom:12px}
+.strat-modal .fld > .fld-t{display:block;margin-bottom:6px}
+.strat-modal .fld.thin{margin-bottom:12px}
+.strat-modal .code-head,.strat-modal label > .code-head{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--faint);margin-bottom:6px;font-weight:400}
+.strat-modal .code-head button{border:1px solid var(--rule);background:#fff;color:var(--accent);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer}
+.strat-modal .code-head button:hover{border-color:var(--accent)}
+.strat-modal .pick-codes,.strat-modal label > .pick-codes{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.strat-modal .code-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:4px;padding:4px 8px;font-size:11px;color:var(--muted);background:#fff;cursor:pointer;transition:all .12s;user-select:none}
+.strat-modal .code-chip i{font-style:normal;font-size:9px;color:var(--faint)}
+.strat-modal .code-chip:hover{border-color:var(--accent2)}
+.strat-modal .code-chip.on{border-color:var(--accent);background:rgba(30,58,95,.06);color:var(--accent);font-weight:600}
+.strat-modal .code-chip.on i{color:var(--accent2)}
+.strat-modal .stepper,.strat-modal label > .stepper{display:flex;align-items:center;gap:4px}
+.strat-modal .stepper input{flex:1;min-width:0;text-align:center}
+.strat-modal .stepper button{width:26px;height:28px;border:1px solid var(--rule);background:#fff;border-radius:4px;cursor:pointer;color:var(--accent);font-size:13px;line-height:1;padding:0}
+.strat-modal .stepper button:hover{border-color:var(--accent);background:rgba(30,58,95,.04)}
+.strat-modal .quick-amt,.strat-modal label > .quick-amt{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 0}
+.strat-modal .quick-amt button{border:1px solid var(--rule);background:#fff;color:var(--muted);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer}
+.strat-modal .quick-amt button:hover,.strat-modal .quick-amt button.on{border-color:var(--accent2);color:var(--accent2)}
+.strat-modal .seg button{padding:5px 12px;font-size:11px}
+
 /* ---------- 存档：时间栏按钮与弹窗 ---------- */
 .tb-save{display:flex;gap:6px;align-items:center;flex:0 0 auto}
 .tb-save button{font-size:10.5px;padding:4px 11px;border:1px solid var(--rule);background:#fff;border-radius:5px;color:var(--accent)}

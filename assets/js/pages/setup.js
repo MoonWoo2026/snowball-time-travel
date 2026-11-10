@@ -204,53 +204,94 @@
     var editing = idx != null;
     if (!editing && PRESETS.length >= 4) return U.toast('最多 4 条策略');
     var plan = editing ? JSON.parse(JSON.stringify(PRESETS[idx].plan)) : newPlan();
+    var picked = (plan.codes || []).filter(function (c) { return watch.indexOf(c) >= 0; });
+    if (!picked.length) picked = watch.slice();
 
-    // 简易弹窗：单条策略配置（内嵌在 setup 页里，比 review 弹窗稍简化）
+    function stepperHTML(id, val, step, min) {
+      return '<span class="stepper">' +
+        '<button type="button" data-st="-1" data-step="' + step + '" data-for="' + id + '">−</button>' +
+        '<input id="' + id + '" type="number" value="' + val + '" step="' + step + '"' + (min != null ? ' min="' + min + '"' : '') + '>' +
+        '<button type="button" data-st="1" data-step="' + step + '" data-for="' + id + '">+</button>' +
+      '</span>';
+    }
+
     var mask = document.createElement('div');
     mask.className = 'mask on';
     mask.innerHTML =
       '<div class="modal strat-modal">' +
         '<h4>' + (editing ? '编辑策略' : '添加自动策略') + '</h4>' +
-        '<label>策略类型' +
+        '<div class="fld"><span class="fld-t">策略类型</span>' +
           '<div class="seg" id="ptType">' +
             '<button data-t="dca" class="' + (plan.type==='dca'?'on':'') + '">等权定投</button>' +
             '<button data-t="value" class="' + (plan.type==='value'?'on':'') + '">估值触发</button>' +
           '</div>' +
-        '</label>' +
-        '<div class="s-row"><label>曲线名 <input id="ptName" value="' + U.esc(plan.name || '') + '" placeholder="比如 每月定投 ¥2 万"></label></div>' +
-        '<div class="s-row pt-dca" style="' + (plan.type==='dca'?'':'display:none') + '">' +
-          '<label>周期 <select id="ptPeriod">' +
-            '<option value="week"' + (plan.dcaPeriod==='week'?' selected':'') + '>每周</option>' +
-            '<option value="month"' + (plan.dcaPeriod==='month'?' selected':'') + '>每月</option>' +
-            '<option value="quarter"' + (plan.dcaPeriod==='quarter'?' selected':'') + '>每季度</option>' +
-          '</select></label>' +
-          '<label>每期总金额（CNY）<input id="ptAmount" type="number" value="' + (plan.dcaAmount||20000) + '" step="1000"></label>' +
-          '<label class="thin">定期再平衡 <select id="ptRebal" style="width:110px">' +
-            '<option value="">关闭</option>' +
-            '<option value="month"' + (plan.rebalPeriod==='month'?' selected':'') + '>每月</option>' +
-            '<option value="quarter"' + (plan.rebalPeriod==='quarter'?' selected':'') + '>每季度</option>' +
-            '<option value="year"' + (plan.rebalPeriod==='year'?' selected':'') + '>每年</option>' +
-          '</select><span class="k tiny">把持仓卖回到等权重</span></label>' +
         '</div>' +
-        '<div class="s-row pt-value" style="' + (plan.type==='value'?'':'display:none') + '">' +
-          '<label>估值指标 <select id="ptMetric">' +
-            '<option value="pb"' + (plan.valMetric==='pb'?' selected':'') + '>PB（市净率）</option>' +
-            '<option value="pe"' + (plan.valMetric==='pe'?' selected':'') + '>PE(TTM)</option>' +
-          '</select></label>' +
-          '<label>买入阈值 ≤ <input id="ptBuy" type="number" value="' + (plan.valBuy||1.0) + '" step="0.1"></label>' +
-          '<label>每次买入金额 <input id="ptValAmount" type="number" value="' + (plan.valAmount||50000) + '" step="1000"></label>' +
-          '<label class="thin">估值止盈（≥ 全清）<input id="ptValSell" type="number" value="' + (plan.valSell||'') + '" placeholder="留空=关闭"></label>' +
+        '<div class="fld"><span class="fld-t">定投标的</span>' +
+          '<span class="code-head"><span id="ptCnt">已选 ' + picked.length + ' / ' + watch.length + '</span>' +
+            '<button type="button" id="ptAll">全选</button>' +
+            '<button type="button" id="ptNone">清空</button></span>' +
+          '<span class="pick-codes" id="ptCodes">' +
+            watch.map(function (c) {
+              var st = M.stock(c);
+              return '<span class="code-chip' + (picked.indexOf(c) >= 0 ? ' on' : '') + '" data-c="' + c + '">' +
+                U.esc(st ? st.name : c) + '<i>' + c + '</i></span>';
+            }).join('') +
+          '</span>' +
+          '<span class="k tiny">策略资金在这些标的之间等权分配</span>' +
+        '</div>' +
+        '<div class="s-row"><label>曲线名 <input id="ptName" value="' + U.esc(plan.name || '') + '" placeholder="比如 每月定投 ¥2 万"></label></div>' +
+        '<div class="pt-dca" style="' + (plan.type==='dca'?'':'display:none') + '">' +
+          '<div class="s-row">' +
+            '<div class="fld thin"><span class="fld-t">定投周期</span>' +
+              '<div class="seg" id="ptPeriod">' +
+                '<button data-p="week" class="' + (plan.dcaPeriod==='week'?'on':'') + '">每周</button>' +
+                '<button data-p="month" class="' + (plan.dcaPeriod==='month'?'on':'') + '">每月</button>' +
+                '<button data-p="quarter" class="' + (plan.dcaPeriod==='quarter'?'on':'') + '">每季度</button>' +
+              '</div>' +
+            '</div>' +
+            '<label class="thin">定期再平衡' +
+              '<select id="ptRebal">' +
+                '<option value="">关闭</option>' +
+                '<option value="month"' + (plan.rebalPeriod==='month'?' selected':'') + '>每月</option>' +
+                '<option value="quarter"' + (plan.rebalPeriod==='quarter'?' selected':'') + '>每季度</option>' +
+                '<option value="year"' + (plan.rebalPeriod==='year'?' selected':'') + '>每年</option>' +
+              '</select>' +
+            '</label>' +
+          '</div>' +
+          '<div class="fld thin"><span class="fld-t">每期总金额（CNY）</span>' +
+            stepperHTML('ptAmount', plan.dcaAmount||20000, 1000, 0) +
+            '<span class="quick-amt" id="ptAmtQuick">' +
+              [2000,10000,20000,50000,100000].map(function (v) {
+                return '<button type="button" data-v="' + v + '">' + (v>=10000 ? (v/10000)+' 万' : (v/1000)+' 千') + '</button>';
+              }).join('') +
+            '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pt-value" style="' + (plan.type==='value'?'':'display:none') + '">' +
+          '<div class="s-row">' +
+            '<div class="fld thin"><span class="fld-t">估值指标</span>' +
+              '<div class="seg" id="ptMetric">' +
+                '<button data-m="pb" class="' + (plan.valMetric!=='pe'?'on':'') + '">PB 市净率</button>' +
+                '<button data-m="pe" class="' + (plan.valMetric==='pe'?'on':'') + '">PE(TTM)</button>' +
+              '</div>' +
+            '</div>' +
+            '<label class="thin">买入阈值 ≤' + stepperHTML('ptBuy', plan.valBuy||1.0, 0.1, 0) + '</label>' +
+          '</div>' +
+          '<div class="s-row">' +
+            '<label class="thin">每次买入金额' + stepperHTML('ptValAmount', plan.valAmount||50000, 1000, 0) + '</label>' +
+            '<label class="thin">估值止盈（≥ 全清）' + stepperHTML('ptValSell', plan.valSell||'', 0.1, 0) + '</label>' +
+          '</div>' +
         '</div>' +
         '<div class="sell-block">' +
           '<div class="sell-head">卖出规则（留空=不触发）</div>' +
           '<div class="s-row">' +
-            '<label>目标收益率止盈 <input id="ptTpPct" type="number" step="5" value="' + (plan.tpPct ? Math.round(plan.tpPct*100) : '') + '" placeholder="如 30 → 30%"></label>' +
+            '<label>目标收益率止盈 ' + stepperHTML('ptTpPct', plan.tpPct ? Math.round(plan.tpPct*100) : '', 5, 0) + '</label>' +
             '<label>止盈方式 <select id="ptTpMode">' +
               '<option value="full"' + (plan.tpMode!=='part'?' selected':'') + '>一次性全清</option>' +
               '<option value="part"' + (plan.tpMode==='part'?' selected':'') + '>分批（1/3 起步）</option>' +
             '</select></label>' +
-            '<label class="thin">止损（浮亏 ≥）<input id="ptSlPct" type="number" step="5" value="' + (plan.slPct ? Math.round(plan.slPct*100) : '') + '" placeholder="如 15 → 15%"></label>' +
-            '<label class="thin">持有期到期（天）<input id="ptHoldDays" type="number" step="30" value="' + (plan.holdDays||'') + '" placeholder="如 365"></label>' +
+            '<label class="thin">止损（浮亏 ≥）' + stepperHTML('ptSlPct', plan.slPct ? Math.round(plan.slPct*100) : '', 5, 0) + '</label>' +
+            '<label class="thin">持有期到期（天）' + stepperHTML('ptHoldDays', plan.holdDays||'', 30, 0) + '</label>' +
           '</div>' +
         '</div>' +
         '<div class="m-act">' +
@@ -273,23 +314,75 @@
       };
     });
     updateVis();
+
+    // 标的勾选
+    function refreshCnt() {
+      var n = mask.querySelectorAll('#ptCodes .code-chip.on').length;
+      mask.querySelector('#ptCnt').textContent = '已选 ' + n + ' / ' + watch.length;
+    }
+    mask.querySelectorAll('#ptCodes .code-chip').forEach(function (chip) {
+      chip.onclick = function () { chip.classList.toggle('on'); refreshCnt(); };
+    });
+    mask.querySelector('#ptAll').onclick = function () {
+      mask.querySelectorAll('#ptCodes .code-chip').forEach(function (c) { c.classList.add('on'); });
+      refreshCnt();
+    };
+    mask.querySelector('#ptNone').onclick = function () {
+      mask.querySelectorAll('#ptCodes .code-chip').forEach(function (c) { c.classList.remove('on'); });
+      refreshCnt();
+    };
+
+    // 周期 / 指标分段
+    function wireSeg(sel) {
+      mask.querySelectorAll(sel + ' button').forEach(function (b) {
+        b.onclick = function () {
+          mask.querySelectorAll(sel + ' button').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+        };
+      });
+    }
+    wireSeg('#ptPeriod');
+    wireSeg('#ptMetric');
+
+    // 数字步进
+    mask.querySelectorAll('.stepper button').forEach(function (b) {
+      b.onclick = function () {
+        var inp = mask.querySelector('#' + b.getAttribute('data-for'));
+        var step = +b.getAttribute('data-step');
+        var v = (+inp.value || 0) + (+b.getAttribute('data-st')) * step;
+        inp.value = Math.max(0, Math.round(v * 100) / 100);
+      };
+    });
+    // 快捷金额
+    mask.querySelectorAll('#ptAmtQuick button').forEach(function (b) {
+      b.onclick = function () {
+        mask.querySelector('#ptAmount').value = b.getAttribute('data-v');
+        mask.querySelectorAll('#ptAmtQuick button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+      };
+    });
+
     mask.querySelector('#ptCancel').onclick = function () { mask.remove(); };
     mask.querySelector('.modal').onclick = function (e) { e.stopPropagation(); };
     mask.onclick = function () { mask.remove(); };
 
     mask.querySelector('#ptSave').onclick = function () {
       var t = mask.querySelector('#ptType button.on').getAttribute('data-t');
+      var codes = [];
+      mask.querySelectorAll('#ptCodes .code-chip.on').forEach(function (c) { codes.push(c.getAttribute('data-c')); });
+      if (!codes.length) return U.toast('至少勾选一个定投标的');
+
       plan.type = t;
       plan.name = mask.querySelector('#ptName').value.trim() || (t === 'dca' ? '等权定投' : '估值触发');
       plan.start = $('startDate').value;
       plan.capital = getCapital();
-      plan.codes = watch.slice();
+      plan.codes = codes;
       if (t === 'dca') {
-        plan.dcaPeriod = mask.querySelector('#ptPeriod').value;
+        plan.dcaPeriod = mask.querySelector('#ptPeriod button.on').getAttribute('data-p');
         plan.dcaAmount = +mask.querySelector('#ptAmount').value || 10000;
         plan.rebalPeriod = mask.querySelector('#ptRebal').value || null;
       } else {
-        plan.valMetric = mask.querySelector('#ptMetric').value;
+        plan.valMetric = mask.querySelector('#ptMetric button.on').getAttribute('data-m');
         plan.valBuy = +mask.querySelector('#ptBuy').value || 1;
         plan.valAmount = +mask.querySelector('#ptValAmount').value || 20000;
         var vs = mask.querySelector('#ptValSell').value;
