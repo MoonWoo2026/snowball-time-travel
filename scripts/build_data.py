@@ -49,6 +49,7 @@ STOCKS = [
     dict(code='000333', name='美的集团', market='A', sector='家电', secid='0.000333', cur='CNY', default=False),
     dict(code='600887', name='伊利股份', market='A', sector='乳业', secid='1.600887', cur='CNY', default=False),
     dict(code='00388', name='香港交易所', market='HK', sector='交易所', secid='116.00388', cur='HKD', default=False),
+    dict(code='600900', name='长江电力', market='A', sector='水电', secid='1.600900', cur='CNY', default=False),
     # 美股 ETF：可交易，无财报，暂不计分红
     dict(code='SPY', name='标普500ETF', market='US', sector='指数基金', secid='107.SPY', cur='USD', default=False),
 ]
