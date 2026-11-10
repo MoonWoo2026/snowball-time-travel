@@ -1,4 +1,4 @@
-/* 术语解释表：key 对应 HTML 里 data-term 的值，值是 popover 内容（可含 HTML） */
+/* 术语解释表 */
 var GLOSSARY = {
   qfq: '<b>前复权</b>：以「今天」的价格为基准，把历史价格按分红、送股等事件往下调整，让 K 线在除息日没有假跳空缺口。优点是 K 线连续、涨跌幅和均线准确；缺点是每次新分红后历史价格会变动，和当年真实成交价对不上。',
   raw: '<b>不复权</b>：显示当天真实成交价，什么都不调。优点是能看到历史真实价格；缺点是除息日有假缺口，拿「2016 年的 300 元」和「今天的 1500 元」直接比会低估真实涨幅（因为没算分红）。',
@@ -25,15 +25,61 @@ var GLOSSARY = {
   growth: '<b>成长能力</b>：公司营收、利润随时间的增长趋势。切换「按季度」看季节性和短期波动，切换「按年度」看长期趋势。'
 };
 
-/* 自动渲染：把所有 [data-term] 元素补上 popover 内容 */
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('[data-term]').forEach(function (el) {
-    var key = el.getAttribute('data-term');
-    var html = GLOSSARY[key];
-    if (!html) return;
-    var pop = document.createElement('span');
-    pop.className = 'info-pop';
-    pop.innerHTML = html;
-    el.appendChild(pop);
+/* 严格惯例：hover 120ms 后才弹，离开 180ms 后才关，同一时刻只显示一个，ESC/点空白全关 */
+(function () {
+  var OPEN = null;
+  var ENTER_D = 120, LEAVE_D = 180;
+  var tEnter = null, tLeave = null;
+
+  function closeAll() {
+    document.querySelectorAll('.term.pop-on').forEach(function (e) { e.classList.remove('pop-on'); });
+    OPEN = null;
+    clearTimeout(tEnter); clearTimeout(tLeave);
+  }
+
+  function show(el) {
+    if (OPEN === el) return;
+    closeAll();
+    el.classList.add('pop-on');
+    OPEN = el;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.term[data-term]').forEach(function (el) {
+      var key = el.getAttribute('data-term');
+      var html = GLOSSARY[key];
+      if (!html) return;
+      // 确保有 pop 容器（幂等，已存在就不重建）
+      if (!el.querySelector('.info-pop')) {
+        var pop = document.createElement('span');
+        pop.className = 'info-pop';
+        pop.innerHTML = html;
+        el.appendChild(pop);
+      }
+      // 去掉 CSS :hover 的冲突（加一行 !important 式处理：用 JS 完全接管）
+      el.addEventListener('mouseenter', function () {
+        clearTimeout(tLeave);
+        clearTimeout(tEnter);
+        tEnter = setTimeout(function () { show(el); }, ENTER_D);
+      });
+      el.addEventListener('mouseleave', function () {
+        clearTimeout(tEnter);
+        tLeave = setTimeout(function () {
+          if (OPEN === el) { el.classList.remove('pop-on'); OPEN = null; }
+        }, LEAVE_D);
+      });
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (OPEN === el) { el.classList.remove('pop-on'); OPEN = null; }
+        else { show(el); }
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (OPEN && !OPEN.contains(e.target)) closeAll();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAll();
+    });
   });
-});
+})();
