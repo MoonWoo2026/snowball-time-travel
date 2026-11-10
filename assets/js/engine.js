@@ -148,6 +148,57 @@ SB.engine = (function () {
     };
   }
 
+  /* ---------- 手动操作撤销 ---------- */
+  var UNDO_MAX = 20;
+
+  /* 每笔手动交易前留一份财务快照：现金、持仓、成交、分红、净值长度 */
+  function snapFin() {
+    return {
+      date: S.date,
+      cash: S.cash,
+      pos: JSON.parse(JSON.stringify(S.pos)),
+      trades: JSON.parse(JSON.stringify(S.trades)),
+      divs: JSON.parse(JSON.stringify(S.divs)),
+      eqLen: S.equity.length
+    };
+  }
+
+  function undoCount() { return (S && S._undo) ? S._undo.length : 0; }
+
+  function undoTrade() {
+    if (!S) return { ok: false, msg: '没有进行中的复盘' };
+    if (!S._undo || !S._undo.length) return { ok: false, msg: '没有可撤销的手动交易' };
+    var s = S._undo.pop();
+    var cur = S.date;
+    var t = S.trades.length ? S.trades[S.trades.length - 1] : null;
+    var msg = t ? '已撤销：' + (t.side === 'buy' ? '买入 ' : '卖出 ') + t.name + ' ' + t.qty + ' 股（' + t.date + '）' : '已撤销上一笔交易';
+
+    S.cash = s.cash;
+    S.pos = s.pos;
+    S.trades = s.trades;
+    S.divs = s.divs;
+    S.equity = S.equity.slice(0, s.eqLen);
+    S.date = s.date;
+    updateLastEquity();
+    if (cur !== s.date) advanceTo(cur); // 重放之后的行情与分红，时间不倒退
+    save();
+    return { ok: true, msg: msg };
+  }
+
+  /* 清空全部手动操作，回到复盘起点；自选、红利复投设置、自动策略预设都保留 */
+  function resetManual() {
+    if (!S) return { ok: false, msg: '没有进行中的复盘' };
+    S.cash = S.initCash;
+    S.pos = {};
+    S.trades = [];
+    S.divs = [];
+    S.equity = [{ d: S.startDate, v: S.initCash }];
+    S.date = S.startDate;
+    S._undo = [];
+    save();
+    return { ok: true, msg: '已清空手动操作，回到 ' + S.startDate };
+  }
+
   function trade(code, side, qty) {
     var st = M.stock(code);
     if (!st) return { ok: false, msg: '未知标的' };
@@ -163,8 +214,18 @@ SB.engine = (function () {
     var amountCNY = qty * price * fxFor(st.currency, S.date);
     var fee = fees(code, qty, price, side, S.date);
 
+    /* 先做资金/持仓校验，失败不留撤销快照 */
     if (side === 'buy') {
       if (S.cash + 1e-6 < amountCNY + fee.cny) return { ok: false, msg: '现金不足' };
+    } else if (!S.pos[code] || S.pos[code].shares < qty) {
+      return { ok: false, msg: '持股不足' };
+    }
+
+    if (!S._undo) S._undo = [];
+    S._undo.push(snapFin());
+    if (S._undo.length > UNDO_MAX) S._undo.shift();
+
+    if (side === 'buy') {
       S.cash -= amountCNY + fee.cny;
       var p = S.pos[code] || { shares: 0, cost: 0, openedAt: S.date };
       p.shares += qty;
@@ -173,7 +234,6 @@ SB.engine = (function () {
       S.pos[code] = p;
     } else {
       var pos = S.pos[code];
-      if (!pos || pos.shares < qty) return { ok: false, msg: '持股不足' };
       S.cash += amountCNY - fee.cny;
       pos.cost *= (pos.shares - qty) / pos.shares;
       pos.shares -= qty;
@@ -343,7 +403,7 @@ SB.engine = (function () {
     trades: function () { return S.trades; }, dividends: function () { return S.divs; },
     watch: function () { return S.watch.slice(); },
     position: position, shares: shares, marketValue: marketValue, portfolioValue: portfolioValue,
-    trade: trade, advanceTo: advanceTo, metrics: metrics, benchmark: benchmark,
+    trade: trade, advanceTo: advanceTo, undoCount: undoCount, undoTrade: undoTrade, resetManual: resetManual, metrics: metrics, benchmark: benchmark,
     addWatch: addWatch, removeWatch: removeWatch, setDrip: setDrip,
     slots: slots, saveSlot: saveSlot, loadSlot: loadSlot, dropSlot: dropSlot, reset: reset,
     fees: fees, snapIdx: snapIdx, dayDiff: dayDiff

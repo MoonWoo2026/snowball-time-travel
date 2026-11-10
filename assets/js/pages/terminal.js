@@ -70,8 +70,25 @@
     renderCurve();
     renderLedger();
     renderDock();
+    syncUndo();
     U.refreshHead();
     if (SB.cycle) SB.cycle.sync();
+  }
+
+  function syncUndo() {
+    var n = E.undoCount();
+    var b = $('tbUndo');
+    b.disabled = !n;
+    b.textContent = n ? '撤销 ' + n : '撤销';
+  }
+
+  function doUndo() {
+    var r = E.undoTrade();
+    if (!r.ok) return U.toast(r.msg);
+    S = E.session();
+    if (!M.stock(state.code)) state.code = S.watch[0];
+    U.toast(r.msg);
+    renderAll();
   }
 
   function renderAcct() {
@@ -786,6 +803,24 @@
 
     $('buyBtn').addEventListener('click', function () { doTrade('buy'); });
     $('sellBtn').addEventListener('click', function () { doTrade('sell'); });
+
+    $('tbUndo').addEventListener('click', doUndo);
+    $('tbReset').addEventListener('click', function () {
+      if (!confirm('清空全部手动买卖，回到复盘起点？自选、红利复投设置和自动策略都不受影响。')) return;
+      var r = E.resetManual();
+      S = E.session();
+      if (!M.stock(state.code)) state.code = S.watch[0];
+      $('qty').value = '';
+      renderAll();
+      U.toast(r.msg);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || (e.key !== 'z' && e.key !== 'Z')) return;
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+      e.preventDefault();
+      doUndo();
+    });
 
     /* 委托到 .dock 上绑定，避免标记结构调整导致事件绑不上 */
     var dock = document.querySelector('.dock');

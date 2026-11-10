@@ -566,6 +566,8 @@ input,select{font-family:inherit}
 .tb-opt input{accent-color:var(--accent);margin:0}
 .tb-opt button{font-size:10.5px;padding:4px 11px;border:1px solid var(--rule);background:#fff;border-radius:5px;color:var(--accent)}
 .tb-opt button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.tb-opt button:disabled{color:var(--faint);border-color:var(--rule2);background:#FCFBF8;cursor:not-allowed}
+.tb-opt button:disabled:hover{background:#FCFBF8;border-color:var(--rule2)}
 
 .cyc{background:#fff;border:1px solid var(--rule);border-radius:10px;padding:10px 14px 12px}
 .cyc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--rule2);margin-bottom:10px}
