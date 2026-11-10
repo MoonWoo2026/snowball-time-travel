@@ -46,6 +46,9 @@ STOCKS = [
     dict(code='01810', name='小米集团', market='HK', sector='消费电子', secid='116.01810', cur='HKD', default=False),
     dict(code='002594', name='比亚迪', market='A', sector='汽车', secid='0.002594', cur='CNY', default=False),
     dict(code='00941', name='中国移动', market='HK', sector='通信', secid='116.00941', cur='HKD', default=False),
+    dict(code='000333', name='美的集团', market='A', sector='家电', secid='0.000333', cur='CNY', default=False),
+    dict(code='600887', name='伊利股份', market='A', sector='乳业', secid='1.600887', cur='CNY', default=False),
+    dict(code='00388', name='香港交易所', market='HK', sector='交易所', secid='116.00388', cur='HKD', default=False),
     # 美股 ETF：可交易，无财报，暂不计分红
     dict(code='SPY', name='标普500ETF', market='US', sector='指数基金', secid='107.SPY', cur='USD', default=False),
 ]
