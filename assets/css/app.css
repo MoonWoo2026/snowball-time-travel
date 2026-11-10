@@ -254,7 +254,12 @@ input,select{font-family:inherit}
 .dock .act.sell:hover{background:#F2F9F5}
 .dock .drip{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
 .dock .drip input{accent-color:var(--accent)}
-.dock .cash-tip{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.dock .deal-info{flex:1 1 100%;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 2px 7px;border-bottom:1px solid var(--rule2);margin-bottom:1px}
+.dock .deal-info b{color:var(--ink);font-weight:600}
+.dock .deal-info .k{color:var(--faint);font-size:10px;font-family:inherit}
+.dock .deal-info .warn{color:var(--up)}
+.dock .deal-info .warn b{color:var(--up)}
+.dock .deal-info .pos{color:var(--down)}
 .dock a{font-size:11px}
 
 /* ---------- 自选股页 ---------- */
@@ -399,7 +404,7 @@ input,select{font-family:inherit}
   .dock .tb-quick button{font-size:9.5px;padding:3px 7px}
   .dock .drip{margin-left:0}
   .dock .act{flex:1 1 64px}
-  .dock .cash-tip{width:100%;order:9;font-size:9.5px}
+  .dock .deal-info{gap:10px;font-size:10px;padding-bottom:5px}
   .kpis{grid-template-columns:repeat(2,1fr)}
   .kpi b{font-size:18px}
   .wl-grid{grid-template-columns:1fr}

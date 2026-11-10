@@ -590,10 +590,43 @@
     var st = M.stock(state.code), px = priceOf(state.code);
     $('dTarget').textContent = st.name + ' ' + state.code;
     $('dPrice').textContent = px === null ? '未上市' : U.px(px, st.currency);
+    renderDeal();
+  }
+
+  /* 交易条资金行：可用现金 + 可卖股数 + 实时成交试算（随股数输入联动） */
+  function renderDeal() {
+    var el = $('dealInfo');
+    if (!el) return;
+    var st = M.stock(state.code), px = priceOf(state.code);
+    var held = E.shares(state.code) || 0;
     var unit = px === null ? 0 : cny(state.code, px);
     var lotN = lot(state.code);
-    var max = unit ? Math.floor(S.cash / (unit * 1.0003) / lotN) * lotN : 0;
-    $('cashTip').textContent = '可用 ' + U.money(S.cash) + ' · 最多 ' + max.toLocaleString('en-US') + ' 股';
+    var maxBuy = unit ? Math.floor(S.cash / (unit * 1.0003) / lotN) * lotN : 0;
+    var q = Math.floor(Number($('qty').value) || 0);
+
+    var h = '<span><span class="k">可用现金</span> <b>' + U.money(S.cash) + '</b></span>';
+    if (held) h += '<span><span class="k">可卖</span> <b>' + held.toLocaleString('en-US') + '</b> 股</span>';
+
+    if (!q) {
+      h += '<span class="k">最多可买 ' + maxBuy.toLocaleString('en-US') + ' 股 · 填入股数后显示这笔要花多少、买后剩多少</span>';
+    } else if (!unit) {
+      h += '<span class="warn">该时点无行情，无法成交</span>';
+    } else {
+      var amt = q * unit;
+      var feeB = E.fees(state.code, q, px, 'buy', S.date).cny;
+      var afterB = S.cash - amt - feeB;
+      h += '<span><span class="k">成交金额</span> <b>' + U.money(amt) + '</b><span class="k">（含费 ' + U.money(feeB) + '）</span></span>';
+      if (afterB >= -1e-6) {
+        h += '<span><span class="k">买入后现金</span> <b>' + U.money(afterB) + '</b></span>';
+      } else {
+        h += '<span class="warn">买入还差 <b>' + U.money(-afterB) + '</b></span>';
+      }
+      if (held >= q) {
+        var feeS = E.fees(state.code, q, px, 'sell', S.date).cny;
+        h += '<span><span class="k">卖出后现金</span> <b class="pos">' + U.money(S.cash + amt - feeS) + '</b></span>';
+      }
+    }
+    el.innerHTML = h;
   }
 
   /* ---------- 交互 ---------- */
@@ -679,6 +712,7 @@
       renderAll();
       if (b.getAttribute('data-sell')) $('qty').value = E.shares(state.code);
       else $('qty').value = '';
+      renderDeal();
       $('qty').focus();
     });
 
@@ -743,6 +777,7 @@
     $('qty').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') doTrade('buy');
     });
+    $('qty').addEventListener('input', renderDeal);
 
     $('drip').addEventListener('change', function () {
       E.setDrip(this.checked);
@@ -764,16 +799,19 @@
         var held = E.shares(state.code) || 0;
         if (!held) return U.toast('当前没有可卖出的持股');
         $('qty').value = held;
+        renderDeal();
         return;
       }
       var cash = E.session().cash;
       var max = maxBuyable(state.code, px, cash);
       if (max <= 0) {
         $('qty').value = '';
+        renderDeal();
         return U.toast('可用现金不足以买入 1 手');
       }
       var qty = v === '1' ? max : Math.floor(max * Number(v) / lot(state.code)) * lot(state.code);
       $('qty').value = Math.max(qty, 0) || '';
+      renderDeal();
     });
   }
 

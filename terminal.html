@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>交易终端 · 滚雪球</title>
-<link rel="stylesheet" href="assets/css/app.css?v=20261115">
+<link rel="stylesheet" href="assets/css/app.css?v=20261116">
 </head>
 <body>
 
@@ -166,6 +166,7 @@
 </main>
 
 <footer class="dock">
+  <div class="deal-info" id="dealInfo">--</div>
   <div class="target">当前标的 <b id="dTarget">--</b> <span class="mono" id="dPrice">--</span></div>
   <input type="number" id="qty" min="1" step="100" placeholder="股数" aria-label="交易股数">
   <div class="tb-quick">
@@ -181,18 +182,17 @@
   <button class="act buy" id="buyBtn">买入</button>
   <button class="act sell" id="sellBtn">卖出</button>
   <label class="drip"><input type="checkbox" id="drip" checked> 红利复投</label>
-  <span class="cash-tip" id="cashTip">--</span>
   <a href="review.html">复盘报告 →</a>
 </footer>
 
 <div id="toast"></div>
 
-<script src="assets/vendor/echarts.min.js?v=20261115"></script>
-<script src="assets/js/store.js?v=20261115"></script>
-<script src="assets/js/market.js?v=20261115"></script>
-<script src="assets/js/engine.js?v=20261115"></script>
-<script src="assets/js/ui.js?v=20261115"></script>
-<script src="assets/js/cycle.js?v=20261115"></script>
-<script src="assets/js/pages/terminal.js?v=20261115"></script>
+<script src="assets/vendor/echarts.min.js?v=20261116"></script>
+<script src="assets/js/store.js?v=20261116"></script>
+<script src="assets/js/market.js?v=20261116"></script>
+<script src="assets/js/engine.js?v=20261116"></script>
+<script src="assets/js/ui.js?v=20261116"></script>
+<script src="assets/js/cycle.js?v=20261116"></script>
+<script src="assets/js/pages/terminal.js?v=20261116"></script>
 </body>
 </html>
