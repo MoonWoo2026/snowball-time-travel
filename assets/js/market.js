@@ -381,6 +381,53 @@ SB.market = (function () {
     };
   }
 
+  /* ROE：当下 TTM + 近 1/3/5 年。
+     口径：年度 ROE = 当年年报 EPS ÷ 期初与期末每股净资产均值（平均净资产法）；
+     只取当日之前已披露的年报，避免偷看未来。近 3/5 年取各年度 ROE 的等权平均。 */
+  function roeStats(code, date) {
+    var st = stocks[code];
+    if (!st) return null;
+    var v = valuation(code, date);
+    var annuals = visibleReports(code, date).filter(function (r) {
+      return r.date.slice(5) === '12-31' && r.eps !== null && r.eps !== undefined && r.bvps > 0;
+    }).map(function (r) {
+      return {
+        year: +r.date.slice(0, 4),
+        eps: convert(r.eps, r.cur, st.currency, r.disc),
+        bv: convert(r.bvps, r.cur, st.currency, r.disc)
+      };
+    });
+    var list = [];
+    annuals.forEach(function (a, i) {
+      if (a.eps === null || a.bv === null) return;
+      var prev = annuals[i - 1];
+      var avgBv = prev && prev.bv > 0 && prev.year === a.year - 1 ? (a.bv + prev.bv) / 2 : a.bv;
+      if (!(avgBv > 0)) return;
+      var roe = a.eps / avgBv;
+      /* 港股早年拆股会让每股收益与每股净资产的股数口径错位，出现 >100% 的假 ROE，直接剔除 */
+      if (!isFinite(roe) || roe > 1) return;
+      list.push({ year: a.year, roe: roe });
+    });
+    function avg(n) {
+      if (!list.length) return null;
+      /* 只取最近 n 个年度内的有效年份，避免早年异常年份混进「近 5 年」 */
+      var latestYear = list[list.length - 1].year;
+      var arr = list.filter(function (x) { return x.year > latestYear - n; });
+      if (!arr.length) return null;
+      var s = 0;
+      arr.forEach(function (x) { s += x.roe; });
+      return s / arr.length;
+    }
+    return {
+      ttm: v && v.roe,
+      y1: list.length ? list[list.length - 1].roe : null,
+      y1Year: list.length ? list[list.length - 1].year : null,
+      y3: avg(3),
+      y5: avg(5),
+      years: list.slice(-5)
+    };
+  }
+
   /* 估值历史分位：按各期财报披露日的价格与当时可见的净资产 / TTM EPS 计算 */
   function valueBand(code, date, years, curPb, curPe) {
     var st = stocks[code];
@@ -493,6 +540,7 @@ SB.market = (function () {
     visibleReports: visibleReports,
     latestReport: latestReport,
     valuation: valuation,
+    roeStats: roeStats,
     valueBand: valueBand,
     toCNY: toCNY,
     toHKD: toHKD,

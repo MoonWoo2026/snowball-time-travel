@@ -355,7 +355,19 @@
 
   function renderValuation() {
     var v = M.valuation(state.code, S.date);
+    var rs = M.roeStats(state.code, S.date);
     $('snapTag').textContent = S.date;
+    function pct(x) {
+      return (x === null || x === undefined || !isFinite(x)) ? '--' : (x * 100).toFixed(1) + '%';
+    }
+    $('vRoe').textContent = rs ? pct(rs.ttm) : '--';
+    $('vRoe1').textContent = rs ? pct(rs.y1) : '--';
+    $('vRoe3').textContent = rs ? pct(rs.y3) : '--';
+    $('vRoe5').textContent = rs ? pct(rs.y5) : '--';
+    $('vRoe1Y').textContent = rs && rs.y1Year ? rs.y1Year + ' 年报' : '';
+    $('vRoeS').textContent = rs && rs.ttm !== null
+      ? (v && v.report ? v.report.date + ' 近 12 个月归母' : '近 12 个月归母')
+      : '暂无已披露报表';
     if (!v) {
       ['vPb', 'vPe', 'vTtm', 'vDiv'].forEach(function (id) { $(id).textContent = '--'; });
       return;
