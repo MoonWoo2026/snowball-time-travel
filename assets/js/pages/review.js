@@ -66,6 +66,7 @@
     }).join('');
 
     renderCurve(eq, rep);
+    renderYears(eq);
     renderStyle(rep);
     renderOps(rep);
     renderMark(m, fees);
@@ -161,6 +162,75 @@
       n++;
     });
     return n ? S.initCash * (1 + total / n) : S.initCash;
+  }
+
+  /* 分年度收益：按自然年切净值曲线，首尾年份可能不完整 */
+  function yearlyReturns(eq) {
+    if (!eq.length) return [];
+    var groups = {}, years = [];
+    eq.forEach(function (p) {
+      var y = p.d.slice(0, 4);
+      if (!groups[y]) { groups[y] = []; years.push(y); }
+      groups[y].push(p);
+    });
+    years.sort();
+
+    var rows = [];
+    var baseAcc = eq[0].v;
+    var baseBench = benchAt(S.startDate);
+    var firstYear = years[0], lastYear = years[years.length - 1];
+    years.forEach(function (y) {
+      var arr = groups[y];
+      var last = arr[arr.length - 1];
+      var benchEnd = benchAt(last.d);
+      var acc = baseAcc ? last.v / baseAcc - 1 : null;
+      var bench = baseBench ? benchEnd / baseBench - 1 : null;
+      rows.push({
+        year: y, acc: acc, bench: bench,
+        excess: acc !== null && bench !== null ? acc - bench : null,
+        partial: (y === firstYear && S.startDate.slice(5) !== '01-01') ||
+                 (y === lastYear && S.date.slice(5) !== '12-31')
+      });
+      baseAcc = last.v;
+      baseBench = benchEnd;
+    });
+    return rows;
+  }
+
+  function renderYears(eq) {
+    var rows = yearlyReturns(eq);
+    if (!rows.length) return;
+    var maxAbs = 0;
+    rows.forEach(function (r) {
+      [r.acc, r.bench].forEach(function (v) {
+        if (v !== null && isFinite(v)) maxAbs = Math.max(maxAbs, Math.abs(v));
+      });
+    });
+    maxAbs = maxAbs || 1;
+
+    var up = 0, down = 0, best = null, worst = null;
+    rows.forEach(function (r) {
+      if (r.acc === null) return;
+      if (r.acc > 0) up++; else if (r.acc < 0) down++;
+      if (!best || r.acc > best.acc) best = r;
+      if (!worst || r.acc < worst.acc) worst = r;
+    });
+
+    $('yearGrid').innerHTML = rows.map(function (r) {
+      var w = Math.max(3, Math.abs(r.acc || 0) / maxAbs * 100);
+      return '<div class="yb-item">' +
+        '<div class="yb-top"><span>' + r.year + (r.partial ? '<i>未完整</i>' : '') + '</span>' +
+        '<b class="' + U.cls(r.acc) + '">' + U.pct(r.acc) + '</b></div>' +
+        '<div class="yb-bar"><i class="' + U.cls(r.acc) + '" style="width:' + w.toFixed(1) + '%"></i></div>' +
+        '<div class="yb-sub"><span>基准 ' + U.pct(r.bench) + '</span>' +
+        '<span class="' + U.cls(r.excess) + '">超额 ' + U.pct(r.excess) + '</span></div>' +
+        '</div>';
+    }).join('');
+
+    $('yearFoot').innerHTML =
+      '<span>盈利 <b>' + up + '</b> 年 · 亏损 <b>' + down + '</b> 年</span>' +
+      (best ? '<span>最佳 <b>' + best.year + '</b> <em class="' + U.cls(best.acc) + '">' + U.pct(best.acc) + '</em></span>' : '') +
+      (worst ? '<span>最差 <b>' + worst.year + '</b> <em class="' + U.cls(worst.acc) + '">' + U.pct(worst.acc) + '</em></span>' : '');
   }
 
   function renderCurve(eq, rep) {
