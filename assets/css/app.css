@@ -746,13 +746,13 @@ input,select{font-family:inherit}
 body.g-open{overflow:hidden}
 .guide-mask{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(18,24,31,.48);backdrop-filter:blur(3px);animation:gFade .18s ease}
 .guide-mask[hidden]{display:none}
-.guide-card{width:min(600px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid var(--rule);border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.24);padding:22px 26px 18px;animation:gIn .22s ease}
-.g-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--rule);padding-bottom:14px}
+.guide-card{display:flex;flex-direction:column;width:min(600px,100%);max-height:90vh;overflow:hidden;background:#fff;border:1px solid var(--rule);border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.24);padding:22px 26px 18px;animation:gIn .22s ease}
+.g-head{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--rule);padding-bottom:14px}
 .g-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;color:var(--faint)}
 .g-head h3{margin:5px 0 0;font-size:20px;letter-spacing:-.3px;color:var(--ink)}
 .g-close{flex:none;width:26px;height:26px;padding:0;border:1px solid var(--rule);border-radius:50%;background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
 .g-close:hover{border-color:var(--accent);color:var(--accent)}
-.g-body{min-height:252px;padding:18px 2px 4px}
+.g-body{flex:1 1 auto;min-height:252px;overflow-y:auto;overscroll-behavior:contain;padding:18px 2px 4px}
 .g-no{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--accent2)}
 .g-step h4{margin:7px 0 9px;font-size:17px;letter-spacing:-.2px;color:var(--ink)}
 .g-step p{margin:0 0 10px;font-size:12.5px;line-height:1.75;color:var(--muted)}
@@ -760,7 +760,7 @@ body.g-open{overflow:hidden}
 .g-step li::marker{color:var(--accent2)}
 .g-tip{margin-top:14px;padding:9px 12px;border-left:2px solid var(--accent2-soft);border-radius:0 5px 5px 0;background:var(--bg2);font-size:11.5px;line-height:1.65;color:var(--muted)}
 .g-tip b{margin-right:4px;color:var(--accent);font-weight:600}
-.g-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;padding-top:14px;border-top:1px solid var(--rule)}
+.g-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;padding-top:14px;border-top:1px solid var(--rule)}
 .g-dots{display:flex;align-items:center;gap:5px}
 .g-dots button{width:6px;height:6px;padding:0;border:0;border-radius:3px;background:var(--rule2);cursor:pointer;transition:all .18s}
 .g-dots button:hover{background:var(--faint)}
@@ -772,6 +772,9 @@ body.g-open{overflow:hidden}
 .g-btn.solid:hover{background:#16304f}
 @keyframes gFade{from{opacity:0}to{opacity:1}}
 @keyframes gIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+@media (max-height:620px){
+  .g-body{min-height:0}
+}
 @media (max-width:640px){
   .guide-mask{padding:12px}
   .guide-card{padding:18px 16px 14px;max-height:94vh}

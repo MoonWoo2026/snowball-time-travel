@@ -136,8 +136,9 @@
     }).join('');
     var prev = mask.querySelector('#gPrev');
     var next = mask.querySelector('#gNext');
-    prev.style.visibility = gi === 0 ? 'hidden' : 'visible';
+    prev.hidden = gi === 0;
     next.textContent = gi === STEPS.length - 1 ? '开始一次复盘' : '下一步';
+    mask.querySelector('.guide-card').scrollTop = 0;
   }
 
   function openGuide() {
@@ -146,7 +147,7 @@
     drawGuide();
     mask.hidden = false;
     document.body.classList.add('g-open');
-    setTimeout(function () { mask.querySelector('#gNext').focus(); }, 30);
+    setTimeout(function () { mask.querySelector('#gNext').focus({ preventScroll: true }); }, 30);
   }
 
   function closeGuide(mark) {
