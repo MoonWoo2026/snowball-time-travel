@@ -112,6 +112,8 @@ input,select{font-family:inherit}
 .setup{max-width:780px;margin:0 auto;padding:44px 26px 70px}
 .setup h1{font-size:26px;font-weight:800;letter-spacing:.5px}
 .setup > p{color:var(--muted);font-size:13px;margin:6px 0 26px}
+.setup-guide{display:inline-block;margin:-16px 0 24px;padding:0;border:0;background:none;color:var(--accent2);font-family:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.setup-guide:hover{color:var(--accent)}
 .form-card{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:22px 24px;margin-bottom:14px}
 .form-card h2{font-size:13px;font-weight:700;letter-spacing:.4px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .form-card h2 .no{font-family:var(--mono);font-size:10.5px;color:var(--accent2)}

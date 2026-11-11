@@ -5,6 +5,8 @@
   var watch = [];
   var existing = null;
 
+  SB.guide.auto();
+
   /* 运行模式 */
   var MODE = 'manual';              // manual | both | auto
   var PRESETS = [];                 // [{plan, enabled, color}]
