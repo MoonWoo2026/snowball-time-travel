@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: snowball-time-travel
+    name: time-snowball
     runtime: static
     staticPublishPath: .
     headers:
