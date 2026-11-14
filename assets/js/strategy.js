@@ -26,7 +26,7 @@
  *   slPct: null,           // 止损（浮亏 ≥ X 清仓），null=关闭
  *   holdDays: null,        // 持有期到期强制清仓天数
  *   name: '我的定投',
- *   color: '#B07A2E'
+ *   color: '#a8854a'
  * }
  */
 (function (global) {

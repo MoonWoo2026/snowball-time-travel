@@ -358,14 +358,14 @@ SB.cycle = (function () {
     for (var k = 1; k <= 7; k++) {
       var cur = k === stage;
       out += '<path d="' + arcPath(cx, cy, R, r, CLOCK_ANGLE[k] - half, CLOCK_ANGLE[k] + half) +
-        '" fill="' + (cur ? '#1E3A5F' : '#F2EEE4') + '" stroke="#fff" stroke-width="1.5"/>';
+        '" fill="' + (cur ? '#1c2433' : '#f3efe6') + '" stroke="#fff" stroke-width="1.5"/>';
       var m = pt(cx, cy, (R + r) / 2, CLOCK_ANGLE[k]);
       out += '<text x="' + m[0].toFixed(1) + '" y="' + (m[1] + 3.4).toFixed(1) +
         '" text-anchor="middle" font-size="9.5" font-family="JBMono,monospace" fill="' +
-        (cur ? '#fff' : '#9AA0A8') + '">' + k + '</text>';
+        (cur ? '#fff' : '#a89c84') + '">' + k + '</text>';
     }
     var p = pt(cx, cy, R + 1, CLOCK_ANGLE[stage]);
-    out += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="#B07A2E"/>';
+    out += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="#a8854a"/>';
     return '<svg viewBox="0 0 152 152" class="cyc-dial" role="img" aria-label="七段时钟">' + out + '</svg>';
   }
 
